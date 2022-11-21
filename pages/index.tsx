@@ -20,7 +20,16 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <form method="post" action="/api/csv">
+        <h1>TTA Basic</h1>
+        <p>
+          This is a temporary app while{' '}
+          <a href="https://github.com/NEARFoundation/tx-tracking-app" target="_blank" rel="noreferrer">
+            https://github.com/NEARFoundation/tx-tracking-app
+          </a>{' '}
+          is being improved.
+        </p>
+        <p>Currently it just pulls basic Send/Receive NEAR transactions.</p>
+        <form method="post" action="/api/csv" style={{ marginTop: '2rem' }}>
           <input type="date" name="startDate" placeholder="YYYY-MM-DD" required defaultValue={defaultStartDateString} /> to{' '}
           <input type="date" name="endDate" placeholder="YYYY-MM-DD" required defaultValue={defaultEndDateString} /> (up until, and excluding)
           <textarea name="accountIds" placeholder="account IDs separated by linebreaks" style={{ width: '100%', height: '20rem' }} defaultValue={ACCOUNT_ID} required></textarea>
