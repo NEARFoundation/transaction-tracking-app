@@ -1,10 +1,35 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getCsvData } from '../../helpers/data';
+import { getFormattedUtcDatetimeNow } from '../../helpers/datetime';
 
-type Data = {
-  name: string;
-};
+const STATUS_SUCCESS = 200;
+const STATUS_ERROR = 500;
 
-export default function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
-  res.status(200).json({ name: 'TODO' });
+function getDefaultFilename(): string {
+  return `download_${getFormattedUtcDatetimeNow()}.csv`;
+}
+
+function getCleanedAccountIds(accountIds: string): Set<string> {
+  return new Set(accountIds.replace('\r', '').split('\n'));
+}
+
+export default async function handler(request: NextApiRequest, res: NextApiResponse<string>) {
+  const { startDate, endDate, accountIds } = request.body;
+
+  console.log({ startDate, endDate, accountIds });
+  const rowsCsv = await getCsvData(startDate as string, endDate as string, getCleanedAccountIds(accountIds as string));
+
+  // https://medium.com/@aitchkhan/downloading-csv-files-from-express-server-7a3beb3ae52c
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${getDefaultFilename()}"`);
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Pragma', 'no-cache');
+
+  try {
+    res.status(STATUS_SUCCESS).send(rowsCsv);
+  } catch (error) {
+    console.error('error:', error);
+    res.status(STATUS_ERROR).send(JSON.stringify(error));
+  }
 }
