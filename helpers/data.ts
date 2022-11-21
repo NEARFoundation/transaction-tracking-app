@@ -23,7 +23,7 @@ inner join blocks b on
 inner join transaction_actions a on
 	a.transaction_hash = r.originated_from_transaction_hash
 where
-	r.predecessor_account_id in ($1)
+	r.predecessor_account_id = ANY($1)
 	and r.receiver_account_id not like '%.sputnik-dao.near'
 	and e.status = 'SUCCESS_VALUE'
 	and a.action_kind = 'TRANSFER'
@@ -47,26 +47,18 @@ inner join blocks b on
 inner join action_receipt_actions ra on
 	ra.receipt_id = r.receipt_id
 where
-	r.receiver_account_id in ($1)
+	r.receiver_account_id = ANY($1)
 	and e.status = 'SUCCESS_VALUE'
 	and ra.action_kind = 'TRANSFER'
 	and r.predecessor_account_id != 'system'
 	and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
 	and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3`;
 
-function getAccountIdsAsQuotedCsv(accountIds: Set<string>): string {
-  return Array.from(accountIds)
-    .map((accountId) => `'${accountId}'`)
-    .join(',');
-}
-
 export async function getCsvData(startDate: string, endDate: string, accountIds: Set<string>): Promise<string> {
   console.log({ startDate, endDate, accountIds });
   const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
   await pgClient.connect();
-  const accountIdsAsQuotedCsv = getAccountIdsAsQuotedCsv(accountIds);
-  console.log({ accountIdsAsQuotedCsv });
-  const result = await pgClient.query(SQL, [accountIdsAsQuotedCsv, startDate, endDate]);
+  const result = await pgClient.query(SQL, [Array.from(accountIds), startDate, endDate]);
   console.log({ result });
   const csv = jsonToCsv(result.rows);
   console.log({ csv });
