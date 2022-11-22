@@ -1,4 +1,6 @@
+/* eslint-disable canonical/filename-match-exported */
 import Head from 'next/head';
+
 import styles from '../styles/Home.module.css';
 
 const ACCOUNT_ID = process.env.ACCOUNT_ID;
@@ -32,7 +34,7 @@ export default function Home() {
         <form method="post" action="/api/csv" style={{ marginTop: '2rem' }}>
           <input type="date" name="startDate" placeholder="YYYY-MM-DD" required defaultValue={defaultStartDateString} /> to{' '}
           <input type="date" name="endDate" placeholder="YYYY-MM-DD" required defaultValue={defaultEndDateString} /> (up until, and excluding)
-          <textarea name="accountIds" placeholder="account IDs separated by linebreaks" style={{ width: '100%', height: '20rem' }} defaultValue={ACCOUNT_ID} required></textarea>
+          <textarea name="accountIds" placeholder="account IDs separated by linebreaks" style={{ height: '20rem', width: '100%' }} defaultValue={ACCOUNT_ID} required></textarea>
           <button>Get CSV</button>
         </form>
         <div style={{ fontSize: '80%', marginTop: '2rem' }}>

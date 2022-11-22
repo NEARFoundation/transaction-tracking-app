@@ -25,6 +25,7 @@
   "devDependencies": {
     "@nearfoundation/near-prettier-config": "^1.0.1",
     "@types/pg": "^8.6.5",
+    "eslint-config-near": "^1.0.3",
     "prettier": "^2.7.1"
   },
   "prettier": "@nearfoundation/near-prettier-config",
