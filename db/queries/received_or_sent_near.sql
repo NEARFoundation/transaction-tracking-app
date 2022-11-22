@@ -3,10 +3,12 @@ SELECT
     b.block_timestamp,
     b.block_height,
     a.transaction_hash,
+    'Send NEAR' transaction_type,
     r.predecessor_account_id from_account,
     r.receiver_account_id to_account,
     -1 * CAST(a.args ->> 'deposit' AS numeric) / CAST((10 ^ 24) AS numeric) amount_transferred,
-    'NEAR' currency_transferred
+    'NEAR' currency_transferred,
+    '' args_base64
 FROM
     receipts r
     INNER JOIN execution_outcomes e ON e.receipt_id = r.receipt_id
@@ -25,10 +27,12 @@ SELECT
     b.block_timestamp,
     b.block_height,
     r.originated_from_transaction_hash transaction_hash,
+    'Receive NEAR' transaction_type,
     r.predecessor_account_id from_account,
     r.receiver_account_id to_account,
     CAST(ra.args ->> 'deposit' AS numeric) / CAST((10 ^ 24) AS numeric) amount_transferred,
-    'NEAR' currency_transferred
+    'NEAR' currency_transferred,
+    '' args_base64
 FROM
     receipts r
     INNER JOIN execution_outcomes e ON e.receipt_id = r.receipt_id

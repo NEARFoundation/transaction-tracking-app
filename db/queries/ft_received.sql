@@ -1,13 +1,14 @@
 SELECT
     to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') block_timestamp_utc,
     b.block_timestamp,
-    r.predecessor_account_id from_account,
     b.block_height,
-    convert_from(decode(ara.args ->> 'args_base64', 'base64'), 'UTF8') args_base64,
     r.originated_from_transaction_hash transaction_hash,
+    'Fungible tokens - Receive token' transaction_type,
+    r.predecessor_account_id from_account,
+    ara.args -> 'args_json' ->> 'receiver_id' to_account,
     ara.args -> 'args_json' ->> 'amount' amount_transferred,
-    r.receiver_account_id get_currency_by_contract,
-    ara.args -> 'args_json' ->> 'receiver_id' to_account
+    r.receiver_account_id currency_transferred,
+    convert_from(decode(ara.args ->> 'args_base64', 'base64'), 'UTF8') args_base64
 FROM
     receipts r
     INNER JOIN execution_outcomes eo ON eo.receipt_id = r.receipt_id
