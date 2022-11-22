@@ -33,15 +33,13 @@ export default async function query_all(startDate: string, endDate: string, acco
   const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
   await pgClient.connect();
 
-  const res = [];
-
   const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from(accountIds), startDate, endDate]);
   const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from(accountIds), startDate, endDate]);
   const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
+  const rows = [];
   for (const row of all_outgoing_txs.rows) {
     const r = <Row>{
-      // block_timestamp_utc: row.block_timestamp_utc,
       block_timestamp: row.block_timestamp,
       block_height: row.block_height,
       transaction_hash: row.transaction_hash,
@@ -53,12 +51,11 @@ export default async function query_all(startDate: string, endDate: string, acco
       method_name: row.args.method_name,
       args: JSON.stringify(row.args.args_json),
     };
-    res.push(r);
+    rows.push(r);
   }
 
   for (const row of all_incoming_txs.rows) {
     const r = <Row>{
-      // block_timestamp_utc: row.block_timestamp_utc,
       block_timestamp: row.block_timestamp,
       block_height: row.block_height,
       transaction_hash: row.transaction_hash,
@@ -70,10 +67,10 @@ export default async function query_all(startDate: string, endDate: string, acco
       method_name: row.args.method_name,
       args: JSON.stringify(row.args.args_json),
     };
-    res.push(r);
+    rows.push(r);
   }
-
-  const csv = jsonToCsv(res);
+  const sortedRows = sortByBlockTimestamp(rows);
+  const csv = jsonToCsv(sortedRows);
   console.log({ csv });
   await pgClient.end();
   return csv;
