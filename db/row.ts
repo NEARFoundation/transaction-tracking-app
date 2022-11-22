@@ -9,4 +9,7 @@ export default interface Row {
   amount_transferred: string;
   currency_transferred: string;
   args_base64: string;
+  action_kind: string;
+  method_name: string;
+  args: string;
 }

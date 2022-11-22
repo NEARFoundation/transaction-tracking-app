@@ -2,6 +2,7 @@ import pg, { QueryResult } from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
 import jsonToCsv from './export';
+import { ALL_OUTGOING, ALL_INCOMING } from './queries/all';
 import Row from './row';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
@@ -32,22 +33,47 @@ export default async function query_all(startDate: string, endDate: string, acco
   const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
   await pgClient.connect();
 
-  const files = getFiles();
-  const promises: Promise<QueryResult<Row>>[] = [];
+  const res = [];
 
-  // TODO(pierre): Consider using pg pool instead of pg client. https://node-postgres.com/features/pooling
-  files.forEach((file) => {
-    const sql = getTransactionTypeSql(file);
-    console.log({ file, sql });
-    const promise = pgClient.query(sql, [Array.from(accountIds), startDate, endDate]);
-    promises.push(promise);
-  });
+  const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from(accountIds), startDate, endDate]);
+  const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from(accountIds), startDate, endDate]);
+  const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
-  const queryResults = await Promise.all(promises);
-  const rows = queryResults.map((queryResult) => queryResult.rows).flat();
-  const sortedRows = sortByBlockTimestamp(rows);
-  const csv = jsonToCsv(sortedRows);
+  for (const row of all_outgoing_txs.rows) {
+    const r = <Row>{
+      // block_timestamp_utc: row.block_timestamp_utc,
+      block_timestamp: row.block_timestamp,
+      block_height: row.block_height,
+      transaction_hash: row.transaction_hash,
+      from_account: row.receipt_predecessor_account_id,
+      to_account: row.receipt_receiver_account_id,
+      amount_transferred: String(-1 * (row.args.deposit / 10 ** 24)),
+      currency_transferred: 'NEAR',
+      action_kind: row.action_kind,
+      method_name: row.args.method_name,
+      args: JSON.stringify(row.args.args_json),
+    };
+    res.push(r);
+  }
 
+  for (const row of all_incoming_txs.rows) {
+    const r = <Row>{
+      // block_timestamp_utc: row.block_timestamp_utc,
+      block_timestamp: row.block_timestamp,
+      block_height: row.block_height,
+      transaction_hash: row.transaction_hash,
+      from_account: row.receipt_predecessor_account_id,
+      to_account: row.receipt_receiver_account_id,
+      amount_transferred: String(row.args.deposit / 10 ** 24),
+      currency_transferred: 'NEAR',
+      action_kind: row.action_kind,
+      method_name: row.args.method_name,
+      args: JSON.stringify(row.args.args_json),
+    };
+    res.push(r);
+  }
+
+  const csv = jsonToCsv(res);
   console.log({ csv });
   await pgClient.end();
   return csv;
