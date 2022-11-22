@@ -11,9 +11,9 @@ const SQL = `select
 	b.block_timestamp,
 	a.transaction_hash,
 	r.predecessor_account_id from_account,
-	r.receiver_account_id receiver_owner_account,	
-	CONCAT('-', a.args ->> 'deposit') amount_transferred,
-	'yoctoNEAR' currency_transferred	
+	r.receiver_account_id receiver_owner_account,
+	-1 * CAST(a.args ->> 'deposit' AS NUMERIC) / CAST((10 ^ 24) AS NUMERIC)   amount_transferred,
+	'NEAR' currency_transferred
 from
 	receipts r
 inner join execution_outcomes e on
@@ -36,8 +36,8 @@ select
 	r.originated_from_transaction_hash transaction_hash,
 	r.predecessor_account_id from_account,
 	r.receiver_account_id receiver_owner_account,
-	ra.args ->> 'deposit' amount_transferred,
-	'yoctoNEAR' currency_transferred	
+    CAST(ra.args ->> 'deposit' as NUMERIC) / CAST((10 ^ 24) AS NUMERIC) amount_transferred,
+	'NEAR' currency_transferred	
 from
 	receipts r
 inner join execution_outcomes e on
