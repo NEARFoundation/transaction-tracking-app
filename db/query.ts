@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import pg, { type QueryResult } from 'pg';
 
-import { getCurrencyByContractFromNear } from '../helpers/currency';
+import { getSymbol } from '../helpers/currency';
 
 import jsonToCsv from './jsonToCsv';
 import type Row from './row';
@@ -54,9 +54,8 @@ export default async function query(startDate: string, endDate: string, accountI
   for (const row of sortedRows) {
     const updatedRow = { ...row };
     if (row.get_currency_by_contract) {
-      const { symbol } = await getCurrencyByContractFromNear(updatedRow.get_currency_by_contract);
       // eslint-disable-next-line canonical/id-match
-      updatedRow.currency_transferred = symbol;
+      updatedRow.currency_transferred = await getSymbol(row.get_currency_by_contract);
     }
 
     sortedRowsWithCurrencySymbols.push(updatedRow);
