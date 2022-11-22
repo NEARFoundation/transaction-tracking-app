@@ -39,35 +39,35 @@ export default async function query_all(startDate: string, endDate: string, acco
     res.push(r);
   }
 
-  for (const row of ft_receive.rows) {
-    const r = <Row>{
-      block_timestamp_utc: row.block_timestamp_utc,
-      block_timestamp: row.block_timestamp,
-      block_height: row.block_height,
-      transaction_hash: row.transaction_hash,
-      from_account: row.from_account,
-      to_account: row.receiver_owner_account,
-      amount_transferred: row.amount_transferred,
-      currency_transferred: row.get_currency_by_contract,
-    };
-    res.push(r);
-  }
+  // for (const row of ft_receive.rows) {
+  //   const r = <Row>{
+  //     block_timestamp_utc: row.block_timestamp_utc,
+  //     block_timestamp: row.block_timestamp,
+  //     block_height: row.block_height,
+  //     transaction_hash: row.transaction_hash,
+  //     from_account: row.from_account,
+  //     to_account: row.receiver_owner_account,
+  //     amount_transferred: row.amount_transferred,
+  //     currency_transferred: row.get_currency_by_contract,
+  //   };
+  //   res.push(r);
+  // }
 
-  console.log('ft_sent.rows:', ft_sent.rows);
+  // console.log('ft_sent.rows:', ft_sent.rows);
 
-  for (const row of ft_sent.rows) {
-    const r = <Row>{
-      block_timestamp_utc: row.block_timestamp_utc,
-      block_timestamp: row.block_timestamp,
-      block_height: row.block_height,
-      transaction_hash: row.transaction_hash,
-      from_account: row.from_account,
-      to_account: row.receiver_owner_account,
-      amount_transferred: row.amount_transferred,
-      currency_transferred: row.get_currency_by_contract,
-    };
-    res.push(r);
-  }
+  // for (const row of ft_sent.rows) {
+  //   const r = <Row>{
+  //     block_timestamp_utc: row.block_timestamp_utc,
+  //     block_timestamp: row.block_timestamp,
+  //     block_height: row.block_height,
+  //     transaction_hash: row.transaction_hash,
+  //     from_account: row.from_account,
+  //     to_account: row.receiver_owner_account,
+  //     amount_transferred: row.amount_transferred,
+  //     currency_transferred: row.get_currency_by_contract,
+  //   };
+  //   res.push(r);
+  // }
 
   const csv = jsonToCsv(res);
   console.log({ csv });
