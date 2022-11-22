@@ -28,7 +28,7 @@ export default function Home() {
           </a>{' '}
           is being improved.
         </p>
-        <p>Currently it just pulls basic Send/Receive NEAR transactions.</p>
+        <p>Currently it just pulls basic Send/Receive NEAR transactions and Send/Receive fungible token transactions.</p>
         <form method="post" action="/api/csv" style={{ marginTop: '2rem' }}>
           <input type="date" name="startDate" placeholder="YYYY-MM-DD" required defaultValue={defaultStartDateString} /> to{' '}
           <input type="date" name="endDate" placeholder="YYYY-MM-DD" required defaultValue={defaultEndDateString} /> (up until, and excluding)

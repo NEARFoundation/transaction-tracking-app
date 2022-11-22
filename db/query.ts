@@ -23,6 +23,10 @@ function getFiles() {
   return filesUnfiltered.filter((file) => file.endsWith(DOT_SQL)).map((file) => path.join(sqlFolder, file));
 }
 
+function sortByBlockTimestamp(rows: Row[]): Row[] {
+  return rows.sort((a, b) => a.block_timestamp - b.block_timestamp);
+}
+
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
   console.log(__dirname, __filename);
   const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
@@ -41,7 +45,8 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   const queryResults = await Promise.all(promises);
   const rows = queryResults.map((queryResult) => queryResult.rows).flat();
-  const csv = jsonToCsv(rows);
+  const sortedRows = sortByBlockTimestamp(rows);
+  const csv = jsonToCsv(sortedRows);
 
   console.log({ csv });
   await pgClient.end();
