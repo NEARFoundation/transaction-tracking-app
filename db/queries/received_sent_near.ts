@@ -1,14 +1,7 @@
-import pg from 'pg';
-import jsonToCsv from './jsonToCsv';
-
-const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
-
-// TODO: Consider allowing these values to be configurable per environment:
-const STATEMENT_TIMEOUT = 30 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
-
-const SQL = `select
+export const RCV_SENT_NEAR = `select
 	to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') block_timestamp_utc,
 	b.block_timestamp,
+    b.block_height,
 	a.transaction_hash,
 	r.predecessor_account_id from_account,
 	r.receiver_account_id receiver_owner_account,
@@ -33,6 +26,7 @@ union
 select
 	to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') block_timestamp_utc,
 	b.block_timestamp,	
+    b.block_height,
 	r.originated_from_transaction_hash transaction_hash,
 	r.predecessor_account_id from_account,
 	r.receiver_account_id receiver_owner_account,
@@ -53,15 +47,3 @@ where
 	and r.predecessor_account_id != 'system'
 	and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
 	and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3`;
-
-export async function getCsvData(startDate: string, endDate: string, accountIds: Set<string>): Promise<string> {
-  console.log({ startDate, endDate, accountIds });
-  const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
-  await pgClient.connect();
-  const result = await pgClient.query(SQL, [Array.from(accountIds), startDate, endDate]);
-  console.log({ result });
-  const csv = jsonToCsv(result.rows);
-  console.log({ csv });
-  await pgClient.end();
-  return csv;
-}
