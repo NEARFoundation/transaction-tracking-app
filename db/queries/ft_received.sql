@@ -7,7 +7,7 @@ SELECT
     r.originated_from_transaction_hash transaction_hash,
     ara.args -> 'args_json' ->> 'amount' amount_transferred,
     r.receiver_account_id get_currency_by_contract,
-    ara.args -> 'args_json' ->> 'receiver_id' receiver_owner_account
+    ara.args -> 'args_json' ->> 'receiver_id' to_account
 FROM
     receipts r
     INNER JOIN execution_outcomes eo ON eo.receipt_id = r.receipt_id

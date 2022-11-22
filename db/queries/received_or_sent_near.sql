@@ -4,7 +4,7 @@ SELECT
     b.block_height,
     a.transaction_hash,
     r.predecessor_account_id from_account,
-    r.receiver_account_id receiver_owner_account,
+    r.receiver_account_id to_account,
     -1 * CAST(a.args ->> 'deposit' AS numeric) / CAST((10 ^ 24) AS numeric) amount_transferred,
     'NEAR' currency_transferred
 FROM
@@ -26,7 +26,7 @@ SELECT
     b.block_height,
     r.originated_from_transaction_hash transaction_hash,
     r.predecessor_account_id from_account,
-    r.receiver_account_id receiver_owner_account,
+    r.receiver_account_id to_account,
     CAST(ra.args ->> 'deposit' AS numeric) / CAST((10 ^ 24) AS numeric) amount_transferred,
     'NEAR' currency_transferred
 FROM
