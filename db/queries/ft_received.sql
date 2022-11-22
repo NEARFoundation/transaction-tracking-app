@@ -7,7 +7,9 @@ SELECT
     r.predecessor_account_id from_account,
     ara.args -> 'args_json' ->> 'receiver_id' to_account,
     ara.args -> 'args_json' ->> 'amount' amount_transferred,
-    r.receiver_account_id currency_transferred,
+    '{symbol}' currency_transferred,
+    /* The ticker symbol later gets looked up in `helpers/currency.ts`. */
+    r.receiver_account_id get_currency_by_contract,
     convert_from(decode(ara.args ->> 'args_base64', 'base64'), 'UTF8') args_base64
 FROM
     receipts r

@@ -10,6 +10,7 @@ type Row = {
   to_account: string;
   amount_transferred: string;
   currency_transferred: string;
+  get_currency_by_contract: string;
   args_base64: string;
 };
 export default Row;

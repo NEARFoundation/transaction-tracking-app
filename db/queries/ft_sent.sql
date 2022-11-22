@@ -7,8 +7,9 @@ SELECT
     r.predecessor_account_id from_account,
     ra.args -> 'args_json' ->> 'receiver_id' to_account,
     CAST(ra.args -> 'args_json' ->> 'amount' AS numeric) * -1 amount_transferred,
-    --r.receiver_account_id get_currency_by_contract,
-    'TODO' currency_transferred,
+    '{symbol}' currency_transferred,
+    /* The ticker symbol later gets looked up in `helpers/currency.ts`. */
+    r.receiver_account_id get_currency_by_contract,
     convert_from(decode(ra.args ->> 'args_base64', 'base64'), 'UTF8') args_base64
 FROM
     receipts r
@@ -32,9 +33,7 @@ WHERE
     AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3
 UNION
 SELECT
-    to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') block_timestamp_utc, b.block_timestamp, b.block_height, r.originated_from_transaction_hash transaction_hash, 'Fungible tokens - Send token' transaction_type, r.predecessor_account_id from_account, ra.args -> 'args_json' ->> 'receiver_id' to_account, CAST(ra.args -> 'args_json' ->> 'amount' AS numeric) * -1 amount_transferred,
-    --'NEAR' currency_transferred, r.receiver_account_id get_currency_by_contract,
-    'TODO' currency_transferred, convert_from(decode(ra.args ->> 'args_base64', 'base64'), 'UTF8') args_base64 FROM receipts r
+    to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') block_timestamp_utc, b.block_timestamp, b.block_height, r.originated_from_transaction_hash transaction_hash, 'Fungible tokens - Send token' transaction_type, r.predecessor_account_id from_account, ra.args -> 'args_json' ->> 'receiver_id' to_account, CAST(ra.args -> 'args_json' ->> 'amount' AS numeric) * -1 amount_transferred, '{symbol}' currency_transferred, /* The ticker symbol later gets looked up in `helpers/currency.ts`. */ r.receiver_account_id get_currency_by_contract, convert_from(decode(ra.args ->> 'args_base64', 'base64'), 'UTF8') args_base64 FROM receipts r
     INNER JOIN execution_outcomes e ON e.receipt_id = r.receipt_id
     INNER JOIN blocks b ON b.block_hash = r.included_in_block_hash
     INNER JOIN action_receipt_actions ra ON ra.receipt_id = r.receipt_id

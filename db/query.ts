@@ -4,12 +4,13 @@ import path from 'node:path';
 
 import pg, { type QueryResult } from 'pg';
 
+import { getCurrencyByContractFromNear } from '../helpers/currency';
+
 import jsonToCsv from './jsonToCsv';
 import type Row from './row';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
-// TODO: Consider allowing these values to be configurable per environment:
 const STATEMENT_TIMEOUT = 30 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
 
 const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
@@ -38,7 +39,7 @@ export default async function query(startDate: string, endDate: string, accountI
   const files = getFiles();
   const promises: Array<Promise<QueryResult<Row>>> = [];
 
-  // TODO(pierre): Consider using pg pool instead of pg client. https://node-postgres.com/features/pooling
+  // TODO (Pierre): Consider using pg pool instead of pg client. https://node-postgres.com/features/pooling
   for (const file of files) {
     const sql = getTransactionTypeSql(file);
     console.log({ file, sql });
@@ -49,7 +50,19 @@ export default async function query(startDate: string, endDate: string, accountI
   const queryResults = await Promise.all(promises);
   const rows = queryResults.flatMap((queryResult) => queryResult.rows);
   const sortedRows = sortByBlockTimestamp(rows);
-  const csv = jsonToCsv(sortedRows);
+  const sortedRowsWithCurrencySymbols = [];
+  for (const row of sortedRows) {
+    const updatedRow = { ...row };
+    if (row.get_currency_by_contract) {
+      const { symbol } = await getCurrencyByContractFromNear(updatedRow.get_currency_by_contract);
+      // eslint-disable-next-line canonical/id-match
+      updatedRow.currency_transferred = symbol;
+    }
+
+    sortedRowsWithCurrencySymbols.push(updatedRow);
+  }
+
+  const csv = jsonToCsv(sortedRowsWithCurrencySymbols);
 
   console.log({ csv });
   await pgClient.end();

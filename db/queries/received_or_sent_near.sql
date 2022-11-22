@@ -8,6 +8,7 @@ SELECT
     r.receiver_account_id to_account,
     -1 * CAST(a.args ->> 'deposit' AS numeric) / CAST((10 ^ 24) AS numeric) amount_transferred,
     'NEAR' currency_transferred,
+    '' get_currency_by_contract,
     '' args_base64
 FROM
     receipts r
@@ -32,6 +33,7 @@ SELECT
     r.receiver_account_id to_account,
     CAST(ra.args ->> 'deposit' AS numeric) / CAST((10 ^ 24) AS numeric) amount_transferred,
     'NEAR' currency_transferred,
+    '' get_currency_by_contract,
     '' args_base64
 FROM
     receipts r
