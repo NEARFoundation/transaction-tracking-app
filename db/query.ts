@@ -27,6 +27,15 @@ function getFiles() {
   return filesUnfiltered.filter((file) => file.endsWith(DOT_SQL)).map((file) => path.join(sqlFolder, file));
 }
 
+export function getTransactionTypes() {
+  const files = getFiles();
+  const transactionTypes = files.map((file) => {
+    const transactionType = file.replace(sqlFolder, '').replace(DOT_SQL, '');
+    return transactionType.slice(1);
+  });
+  return transactionTypes;
+}
+
 function sortByBlockTimestamp(rows: Row[]): Row[] {
   return rows.sort((a, b) => a.block_timestamp - b.block_timestamp);
 }
