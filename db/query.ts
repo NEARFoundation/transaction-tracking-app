@@ -39,13 +39,14 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   const rows = [];
   for (const row of all_outgoing_txs.rows) {
+    let amount = row.args.deposit ? String(-1 * (row.args.deposit / 10 ** 24)) : '0';
     const r = <Row>{
       block_timestamp: row.block_timestamp,
       block_height: row.block_height,
       transaction_hash: row.transaction_hash,
       from_account: row.receipt_predecessor_account_id,
       to_account: row.receipt_receiver_account_id,
-      amount_transferred: String(-1 * (row.args.deposit / 10 ** 24)),
+      amount_transferred: amount,
       currency_transferred: 'NEAR',
       action_kind: row.action_kind,
       method_name: row.args.method_name,
@@ -55,13 +56,15 @@ export default async function query_all(startDate: string, endDate: string, acco
   }
 
   for (const row of all_incoming_txs.rows) {
+    let amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
+
     const r = <Row>{
       block_timestamp: row.block_timestamp,
       block_height: row.block_height,
       transaction_hash: row.transaction_hash,
       from_account: row.receipt_predecessor_account_id,
       to_account: row.receipt_receiver_account_id,
-      amount_transferred: String(row.args.deposit / 10 ** 24),
+      amount_transferred: amount,
       currency_transferred: 'NEAR',
       action_kind: row.action_kind,
       method_name: row.args.method_name,
