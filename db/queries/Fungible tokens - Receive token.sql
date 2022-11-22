@@ -7,7 +7,9 @@ SELECT
     r.predecessor_account_id from_account,
     ara.args -> 'args_json' ->> 'receiver_id' to_account,
     ara.args -> 'args_json' ->> 'amount' amount_transferred,
-    r.receiver_account_id currency_transferred,
+    '{symbol}' currency_transferred,
+    /* The ticker symbol later gets looked up in `helpers/currency.ts`. */
+    r.receiver_account_id get_currency_by_contract,
     convert_from(decode(ara.args ->> 'args_base64', 'base64'), 'UTF8') args_base64
 FROM
     receipts r
@@ -21,6 +23,5 @@ WHERE
     AND ara.args ->> 'args_json'::text IS NOT NULL
     AND ara.args -> 'args_json' ->> 'receiver_id' = ANY ($1)
     AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
-    AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3
-ORDER BY
-    b.block_timestamp
+    AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3;
+
