@@ -23,6 +23,5 @@ WHERE
     AND ara.args ->> 'args_json'::text IS NOT NULL
     AND ara.args -> 'args_json' ->> 'receiver_id' = ANY ($1)
     AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
-    AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3
-ORDER BY
-    b.block_timestamp
+    AND to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3;
+

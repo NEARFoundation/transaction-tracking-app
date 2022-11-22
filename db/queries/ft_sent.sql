@@ -79,5 +79,5 @@ SELECT
         AND r3.receiver_account_id = r.receiver_account_id
         AND ra3.action_kind = 'FUNCTION_CALL'
         AND ra3.args ->> 'args_json'::text IS NOT NULL
-        AND ra3.args ->> 'method_name'::text = 'ft_resolve_transfer')
-ORDER BY block_timestamp
+        AND ra3.args ->> 'method_name'::text = 'ft_resolve_transfer');
+
