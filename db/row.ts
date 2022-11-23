@@ -8,6 +8,8 @@ export default interface Row {
   to_account: string;
   amount_transferred: string;
   currency_transferred: string;
+  ft_amount_transferred: string;
+  ft_currency_transferred: string;
   args_base64: string;
   action_kind: string;
   method_name: string;

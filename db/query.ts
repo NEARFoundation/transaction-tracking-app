@@ -4,6 +4,7 @@ import path from 'node:path';
 import jsonToCsv from './export';
 import { ALL_OUTGOING, ALL_INCOMING } from './queries/all';
 import Row from './row';
+import { getCurrencyByContractFromNear } from '../helpers/currency';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
@@ -39,15 +40,33 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   const rows = [];
   for (const row of all_outgoing_txs.rows) {
-    let amount = row.args.deposit ? String(-1 * (row.args.deposit / 10 ** 24)) : '0';
+    let near_amount = row.args.deposit ? String(-1 * (row.args.deposit / 10 ** 24)) : '0';
+    let ft_amount = '';
+    let ft_currency = '';
+
+    if (row.args.method_name === 'ft_transfer') {
+      if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+        console.log({ row });
+        const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+        ft_currency = symbol;
+
+        let raw_amount = row.args?.args_json?.amount;
+        ft_amount = String(-1 * (raw_amount / 10 ** decimals));
+      }
+    }
+
     const r = <Row>{
       block_timestamp: row.block_timestamp,
       block_height: row.block_height,
       transaction_hash: row.transaction_hash,
       from_account: row.receipt_predecessor_account_id,
       to_account: row.receipt_receiver_account_id,
-      amount_transferred: amount,
+      amount_transferred: near_amount,
       currency_transferred: 'NEAR',
+      // Fugible Token
+      ft_amount_transferred: ft_amount,
+      ft_currency_transferred: ft_currency,
+      // Action
       action_kind: row.action_kind,
       method_name: row.args.method_name,
       args: JSON.stringify(row.args.args_json),
