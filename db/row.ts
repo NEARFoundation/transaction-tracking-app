@@ -1,4 +1,5 @@
 export default interface Row {
+  date: string;
   account_id: string;
   block_timestamp_utc: string;
   block_timestamp: number;

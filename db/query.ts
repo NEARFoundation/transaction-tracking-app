@@ -58,6 +58,7 @@ export default async function query_all(startDate: string, endDate: string, acco
       }
 
       const r = <Row>{
+        date: new Date(row.block_timestamp / 1000000).toISOString(),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
@@ -80,6 +81,7 @@ export default async function query_all(startDate: string, endDate: string, acco
       let near_amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
       let ft_amount = '';
       let ft_currency = '';
+      console.log(new Date(row.block_timestamp / 1000000));
 
       if (row.args.method_name === 'ft_transfer') {
         if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
@@ -92,6 +94,7 @@ export default async function query_all(startDate: string, endDate: string, acco
         }
       }
       const r = <Row>{
+        date: new Date(row.block_timestamp / 1000000).toISOString(),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
@@ -113,7 +116,6 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   const sortedRows = sortByBlockTimestamp(rows);
   const csv = jsonToCsv(sortedRows);
-  console.log({ csv });
   await pgClient.end();
   return csv;
 }
