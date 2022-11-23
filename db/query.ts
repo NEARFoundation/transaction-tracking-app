@@ -9,7 +9,7 @@ import { getCurrencyByContractFromNear } from '../helpers/currency';
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
 // TODO: Consider allowing these values to be configurable per environment:
-const STATEMENT_TIMEOUT = 30 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
+const STATEMENT_TIMEOUT = 600 * 1_000; // 600 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
 
 const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
 const DOT_SQL = '.sql';
@@ -59,7 +59,7 @@ export default async function query_all(startDate: string, endDate: string, acco
 
       const r = <Row>{
         account_id: accountId,
-        method_name: row.action_kind == 'TRANSFER' ? row.action_kind : row.args.method_name,
+        method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
         from_account: row.receipt_predecessor_account_id,
         block_height: row.block_height,
@@ -71,15 +71,13 @@ export default async function query_all(startDate: string, endDate: string, acco
         // Fugible Token
         ft_amount_transferred: ft_amount,
         ft_currency_transferred: ft_currency,
-        // Action
-        action_kind: row.action_kind,
         to_account: row.receipt_receiver_account_id,
       };
       rows.push(r);
     }
 
     for (const row of all_incoming_txs.rows) {
-      let amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
+      let near_amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
       let ft_amount = '';
       let ft_currency = '';
 
@@ -95,16 +93,19 @@ export default async function query_all(startDate: string, endDate: string, acco
       }
       const r = <Row>{
         account_id: accountId,
+        method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
-        block_height: row.block_height,
-        transaction_hash: row.transaction_hash,
         from_account: row.receipt_predecessor_account_id,
-        to_account: row.receipt_receiver_account_id,
-        amount_transferred: amount,
-        currency_transferred: 'NEAR',
-        action_kind: row.action_kind,
-        method_name: row.args.method_name,
+        block_height: row.block_height,
         args: JSON.stringify(row.args.args_json),
+        transaction_hash: row.transaction_hash,
+        // NEAR tokens
+        amount_transferred: near_amount,
+        currency_transferred: 'NEAR',
+        // Fugible Token
+        ft_amount_transferred: ft_amount,
+        ft_currency_transferred: ft_currency,
+        to_account: row.receipt_receiver_account_id,
       };
       rows.push(r);
     }
