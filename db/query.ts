@@ -76,7 +76,19 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   for (const row of all_incoming_txs.rows) {
     let amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
+    let ft_amount = '';
+    let ft_currency = '';
 
+    if (row.args.method_name === 'ft_transfer') {
+      if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+        console.log({ row });
+        const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+        ft_currency = symbol;
+
+        let raw_amount = row.args?.args_json?.amount;
+        ft_amount = String(raw_amount / 10 ** decimals);
+      }
+    }
     const r = <Row>{
       block_timestamp: row.block_timestamp,
       block_height: row.block_height,
