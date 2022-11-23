@@ -9,7 +9,7 @@ import { getCurrencyByContractFromNear } from '../helpers/currency';
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
 // TODO: Consider allowing these values to be configurable per environment:
-const STATEMENT_TIMEOUT = 600 * 1_000; // 600 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
+const STATEMENT_TIMEOUT = 30 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
 
 const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
 const DOT_SQL = '.sql';
