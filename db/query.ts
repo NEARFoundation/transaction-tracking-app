@@ -30,79 +30,86 @@ function sortByBlockTimestamp(rows: Row[]): Row[] {
 }
 
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
-  console.log(__dirname, __filename);
   const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
   await pgClient.connect();
-
-  const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from(accountIds), startDate, endDate]);
-  const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from(accountIds), startDate, endDate]);
-  const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
-
   const rows = [];
-  for (const row of all_outgoing_txs.rows) {
-    let near_amount = row.args.deposit ? String(-1 * (row.args.deposit / 10 ** 24)) : '0';
-    let ft_amount = '';
-    let ft_currency = '';
 
-    if (row.args.method_name === 'ft_transfer') {
-      if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
-        console.log({ row });
-        const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
-        ft_currency = symbol;
+  for (const accountId of accountIds) {
+    console.log(accountId);
 
-        let raw_amount = row.args?.args_json?.amount;
-        ft_amount = String(-1 * (raw_amount / 10 ** decimals));
+    const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from([accountId]), startDate, endDate]);
+    const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from([accountId]), startDate, endDate]);
+    const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
+
+    for (const row of all_outgoing_txs.rows) {
+      let near_amount = row.args.deposit ? String(-1 * (row.args.deposit / 10 ** 24)) : '0';
+      let ft_amount = '';
+      let ft_currency = '';
+
+      if (row.args.method_name === 'ft_transfer') {
+        if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+          console.log({ row });
+          const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+          ft_currency = symbol;
+
+          let raw_amount = row.args?.args_json?.amount;
+          ft_amount = String(-1 * (raw_amount / 10 ** decimals));
+        }
       }
+
+      const r = <Row>{
+        account_id: accountId,
+        method_name: row.action_kind == 'TRANSFER' ? row.action_kind : row.args.method_name,
+        block_timestamp: row.block_timestamp,
+        from_account: row.receipt_predecessor_account_id,
+        block_height: row.block_height,
+        args: JSON.stringify(row.args.args_json),
+        transaction_hash: row.transaction_hash,
+        // NEAR tokens
+        amount_transferred: near_amount,
+        currency_transferred: 'NEAR',
+        // Fugible Token
+        ft_amount_transferred: ft_amount,
+        ft_currency_transferred: ft_currency,
+        // Action
+        action_kind: row.action_kind,
+        to_account: row.receipt_receiver_account_id,
+      };
+      rows.push(r);
     }
 
-    const r = <Row>{
-      block_timestamp: row.block_timestamp,
-      block_height: row.block_height,
-      transaction_hash: row.transaction_hash,
-      from_account: row.receipt_predecessor_account_id,
-      to_account: row.receipt_receiver_account_id,
-      amount_transferred: near_amount,
-      currency_transferred: 'NEAR',
-      // Fugible Token
-      ft_amount_transferred: ft_amount,
-      ft_currency_transferred: ft_currency,
-      // Action
-      action_kind: row.action_kind,
-      method_name: row.args.method_name,
-      args: JSON.stringify(row.args.args_json),
-    };
-    rows.push(r);
-  }
+    for (const row of all_incoming_txs.rows) {
+      let amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
+      let ft_amount = '';
+      let ft_currency = '';
 
-  for (const row of all_incoming_txs.rows) {
-    let amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
-    let ft_amount = '';
-    let ft_currency = '';
+      if (row.args.method_name === 'ft_transfer') {
+        if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+          console.log({ row });
+          const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+          ft_currency = symbol;
 
-    if (row.args.method_name === 'ft_transfer') {
-      if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
-        console.log({ row });
-        const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
-        ft_currency = symbol;
-
-        let raw_amount = row.args?.args_json?.amount;
-        ft_amount = String(raw_amount / 10 ** decimals);
+          let raw_amount = row.args?.args_json?.amount;
+          ft_amount = String(raw_amount / 10 ** decimals);
+        }
       }
+      const r = <Row>{
+        account_id: accountId,
+        block_timestamp: row.block_timestamp,
+        block_height: row.block_height,
+        transaction_hash: row.transaction_hash,
+        from_account: row.receipt_predecessor_account_id,
+        to_account: row.receipt_receiver_account_id,
+        amount_transferred: amount,
+        currency_transferred: 'NEAR',
+        action_kind: row.action_kind,
+        method_name: row.args.method_name,
+        args: JSON.stringify(row.args.args_json),
+      };
+      rows.push(r);
     }
-    const r = <Row>{
-      block_timestamp: row.block_timestamp,
-      block_height: row.block_height,
-      transaction_hash: row.transaction_hash,
-      from_account: row.receipt_predecessor_account_id,
-      to_account: row.receipt_receiver_account_id,
-      amount_transferred: amount,
-      currency_transferred: 'NEAR',
-      action_kind: row.action_kind,
-      method_name: row.args.method_name,
-      args: JSON.stringify(row.args.args_json),
-    };
-    rows.push(r);
   }
+
   const sortedRows = sortByBlockTimestamp(rows);
   const csv = jsonToCsv(sortedRows);
   console.log({ csv });
