@@ -8,7 +8,7 @@ export default interface Row {
   transaction_type: string;
   from_account: string;
   to_account: string;
-  amount_transferred: string;
+  amount_transferred: number;
   currency_transferred: string;
   ft_amount_transferred: string;
   ft_currency_transferred: string;
