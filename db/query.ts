@@ -44,8 +44,8 @@ export default async function query_all(startDate: string, endDate: string, acco
     const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
     for (const row of all_outgoing_txs.rows) {
-      let near_amount = row.args?.deposit ? row.args.deposit / 10 ** 24 : 0;
-      near_amount = near_amount > 0.01 ? near_amount : 0;
+      let near_amount = row.args?.deposit ? -1 * (row.args.deposit / 10 ** 24) : 0;
+      near_amount = Math.abs(near_amount) > 0.01 ? near_amount : 0;
 
       let ft_amount = '';
       let ft_currency = '';
@@ -82,8 +82,9 @@ export default async function query_all(startDate: string, endDate: string, acco
     }
 
     for (const row of all_incoming_txs.rows) {
-      let near_amount = row.args?.deposit ? -1 * (row.args.deposit / 10 ** 24) : 0;
+      let near_amount = row.args?.deposit ? row.args.deposit / 10 ** 24 : 0;
       near_amount = near_amount > 0.01 ? near_amount : 0;
+
       let ft_amount = '';
       let ft_currency = '';
       console.log(new Date(row.block_timestamp / 1000000));
