@@ -9,7 +9,7 @@ import { getCurrencyByContractFromNear } from '../helpers/currency';
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
 // TODO: Consider allowing these values to be configurable per environment:
-const STATEMENT_TIMEOUT = 600 * 1_000; // 600 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
+const STATEMENT_TIMEOUT = 30 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
 
 const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
 const DOT_SQL = '.sql';
@@ -26,7 +26,9 @@ function getFiles() {
 }
 
 function sortByBlockTimestamp(rows: Row[]): Row[] {
-  return rows.sort((a, b) => a.block_timestamp - b.block_timestamp);
+  return rows.sort(function (a, b) {
+    return a.account_id.localeCompare(b.account_id) || a.block_timestamp - b.block_timestamp;
+  });
 }
 
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
@@ -42,14 +44,14 @@ export default async function query_all(startDate: string, endDate: string, acco
     const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
     for (const row of all_outgoing_txs.rows) {
-      let near_amount = row.args.deposit ? String(-1 * (row.args.deposit / 10 ** 24)) : '0';
+      let near_amount = row.args?.deposit ? -1 * (row.args.deposit / 10 ** 24) : 0;
+      near_amount = Math.abs(near_amount) > 0.01 ? near_amount : 0;
 
       let in_amount = '';
       let in_currency = '';
 
       let out_amount = '';
       let out_currency = '';
-
 
 
       if (row.args.method_name === 'ft_transfer') {
@@ -112,6 +114,7 @@ export default async function query_all(startDate: string, endDate: string, acco
       }
 
       const r = <Row>{
+        date: new Date(row.block_timestamp / 1000000).toISOString(),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
@@ -133,9 +136,12 @@ export default async function query_all(startDate: string, endDate: string, acco
     }
 
     for (const row of all_incoming_txs.rows) {
-      let near_amount = row.args.deposit ? String(row.args.deposit / 10 ** 24) : '0';
+      let near_amount = row.args?.deposit ? row.args.deposit / 10 ** 24 : 0;
+      near_amount = near_amount > 0.01 ? near_amount : 0;
+      
       let in_amount = '';
       let in_currency = '';
+
       if (row.args.method_name === 'ft_transfer') {
         if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
           console.log({ row });
@@ -147,6 +153,7 @@ export default async function query_all(startDate: string, endDate: string, acco
         }
       }
       const r = <Row>{
+        date: new Date(row.block_timestamp / 1000000).toISOString(),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
@@ -168,7 +175,6 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   const sortedRows = sortByBlockTimestamp(rows);
   const csv = jsonToCsv(sortedRows);
-  console.log({ csv });
   await pgClient.end();
   return csv;
 }

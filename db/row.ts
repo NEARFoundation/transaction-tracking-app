@@ -1,4 +1,5 @@
 export default interface Row {
+  date: string;
   account_id: string;
   block_timestamp_utc: string;
   block_timestamp: number;
@@ -7,7 +8,7 @@ export default interface Row {
   transaction_type: string;
   from_account: string;
   to_account: string;
-  amount_transferred: string;
+  amount_transferred: number;
   currency_transferred: string;
   ft_currency_in: string;
   ft_amount_in: string;
