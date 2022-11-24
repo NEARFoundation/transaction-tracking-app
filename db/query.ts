@@ -4,7 +4,7 @@ import path from 'node:path';
 import jsonToCsv from './export';
 import { ALL_OUTGOING, ALL_INCOMING } from './queries/all';
 import Row from './row';
-import { getCurrencyByContractFromNear } from '../helpers/currency';
+import { AccountId, FTBalance, getCurrencyByContractFromNear, getFTBalance } from '../helpers/currency';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
@@ -30,16 +30,38 @@ function sortByBlockTimestamp(rows: Row[]): Row[] {
   });
 }
 
+const seen_balances = new Map();
+
+async function getBalances(accountId: AccountId, block_id: number): Promise<{ usdc: FTBalance; dai: FTBalance }> {
+  const key = JSON.stringify({ accId: accountId, b_id: block_id });
+
+  if (seen_balances.has(key)) {
+    console.log('getBalances cache hit', accountId, block_id);
+
+    return seen_balances.get(key);
+  }
+
+  // USDC
+  const usdc = await getFTBalance('a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near', accountId, Number(block_id));
+
+  // DAI
+  const dai = await getFTBalance('6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near', accountId, Number(block_id));
+  seen_balances.set(key, { usdc, dai });
+
+  return { usdc, dai };
+}
+
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
   const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
   await pgClient.connect();
-  const rows = [];
+  let rows = [];
 
   for (const accountId of accountIds) {
     const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from([accountId]), startDate, endDate]);
     const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from([accountId]), startDate, endDate]);
     const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
+    // TODO(pierre): consider using async to parallelize this
     for (const row of all_outgoing_txs.rows) {
       let near_amount = row.args?.deposit ? -1 * (row.args.deposit / 10 ** 24) : 0;
       // Remove very small transfers, eg. -1E-24
@@ -98,7 +120,8 @@ export default async function query_all(startDate: string, endDate: string, acco
         }
       }
 
-      const r = <Row>{
+      const ft_balances = await getBalances(accountId, row.block_height);
+      let r = <Row>{
         date: formatDate(new Date(row.block_timestamp / 1000000)),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
@@ -116,6 +139,8 @@ export default async function query_all(startDate: string, endDate: string, acco
         ft_amount_in: in_amount,
         ft_currency_in: in_currency,
         to_account: row.receipt_receiver_account_id,
+        onchain_dai_balance: ft_balances.dai.balance / 10 ** ft_balances.dai.decimals,
+        onchain_usdc_balance: ft_balances.usdc.balance / 10 ** ft_balances.usdc.decimals,
       };
       rows.push(r);
     }
@@ -123,7 +148,7 @@ export default async function query_all(startDate: string, endDate: string, acco
     for (const row of all_incoming_txs.rows) {
       let near_amount = row.args?.deposit ? row.args.deposit / 10 ** 24 : 0;
       near_amount = Math.abs(near_amount) >= 0.000001 ? near_amount : 0;
-      // There is a weird case when the system amount is almost 0 it doesn't count in the balance.
+      // Gas refund are already accounted in other transactions.
       if (row.receipt_predecessor_account_id == 'system') {
         near_amount = Math.abs(near_amount) >= 0.5 ? near_amount : 0;
       }
@@ -141,7 +166,8 @@ export default async function query_all(startDate: string, endDate: string, acco
         }
       }
 
-      const r = <Row>{
+      const ft_balances = await getBalances(accountId, row.block_height);
+      let r = <Row>{
         date: formatDate(new Date(row.block_timestamp / 1000000)),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
@@ -157,6 +183,8 @@ export default async function query_all(startDate: string, endDate: string, acco
         ft_amount_in: in_amount,
         ft_currency_in: in_currency,
         to_account: row.receipt_receiver_account_id,
+        onchain_dai_balance: ft_balances.dai.balance / 10 ** ft_balances.dai.decimals,
+        onchain_usdc_balance: ft_balances.usdc.balance / 10 ** ft_balances.usdc.decimals,
       };
       rows.push(r);
     }

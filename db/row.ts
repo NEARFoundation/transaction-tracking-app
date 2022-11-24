@@ -18,4 +18,6 @@ export default interface Row {
   action_kind: string;
   method_name: string;
   args: string;
+  onchain_usdc_balance: number;
+  onchain_dai_balance: number;
 }

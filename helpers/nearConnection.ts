@@ -8,5 +8,5 @@ export function getNearApiConnection(nodeUrl: string, keyStore?: KeyStore) {
   const signer = new nearAPI.InMemorySigner(keyStore ?? new InMemoryKeyStore());
   const connection = new nearAPI.Connection(nodeUrl, provider, signer);
   // console.log('getNearApiConnection', connection);
-  return connection;
+  return { provider, connection };
 }
