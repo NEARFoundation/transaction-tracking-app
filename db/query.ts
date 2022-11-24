@@ -80,24 +80,34 @@ export default async function query_all(startDate: string, endDate: string, acco
       }
 
       else if (row.args.method_name === 'ft_transfer_call') {
-        console.log({ row });
-        if (row.args?.args_json?.msg == '' || !row.args?.args_json?.msg.includes("force")) {
-          let raw_amount_out = row.args?.args_json?.amount;
+
+        // Gets arguments for function, converts from base64 if necessary 
+        let args_json = row.args?.args_json ? row.args.args_json : JSON.parse(atob(row.args.args_base64));
+
+        if (args_json.receiver_id?.includes("bulksender.near")) {
+          let raw_amount_out = args_json.amount;
           var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
           out_currency = symbol;
           out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
         }
-        else {
-          let msg = JSON.parse(row.args.args_json.msg.replaceAll('\\', ""));
-          let raw_amount_out = row.args?.args_json?.amount;
+
+        else if (args_json.msg?.includes("force")) {
+          let msg = JSON.parse(args_json.msg?.replaceAll('\\', ""));
+          let raw_amount_out = args_json.amount;
           var { symbol, decimals } = await getCurrencyByContractFromNear(msg.actions[0].token_in);
           out_currency = symbol;
           out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
-
           var { symbol, decimals } = await getCurrencyByContractFromNear(msg.actions[0].token_out);
           let raw_amount_in = msg.actions[0].min_amount_out;
           in_currency = symbol;
           in_amount = String((raw_amount_in / 10 ** decimals));
+        }
+
+        else {
+          let raw_amount_out = args_json.amount;
+          var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+          out_currency = symbol;
+          out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
         }
       }
 
