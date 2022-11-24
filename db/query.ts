@@ -99,7 +99,7 @@ export default async function query_all(startDate: string, endDate: string, acco
       }
 
       const r = <Row>{
-        date: new Date(row.block_timestamp / 1000000).toISOString(),
+        date: formatDate(new Date(row.block_timestamp / 1000000)),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
@@ -140,8 +140,9 @@ export default async function query_all(startDate: string, endDate: string, acco
           in_amount = String(raw_amount / 10 ** decimals);
         }
       }
+
       const r = <Row>{
-        date: new Date(row.block_timestamp / 1000000).toISOString(),
+        date: formatDate(new Date(row.block_timestamp / 1000000)),
         account_id: accountId,
         method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
         block_timestamp: row.block_timestamp,
@@ -165,4 +166,11 @@ export default async function query_all(startDate: string, endDate: string, acco
   const csv = jsonToCsv(sortedRows);
   await pgClient.end();
   return csv;
+}
+
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  return `${day}/${month}/${year}`;
 }
