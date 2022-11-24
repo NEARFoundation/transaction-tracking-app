@@ -11,7 +11,9 @@ function getDefaultFilename(): string {
 }
 
 function getCleanedAccountIds(accountIds: string): Set<string> {
-  return new Set(accountIds.replace('\r', '').split('\n'));
+  console.log('getCleanedAccountIds', accountIds);
+
+  return new Set(accountIds.replaceAll('\r', '').split('\n'));
 }
 
 export default async function handler(request: NextApiRequest, res: NextApiResponse<string>) {

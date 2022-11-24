@@ -1,4 +1,4 @@
-import pg, { QueryResult } from 'pg';
+import { Pool, QueryResult } from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
 import jsonToCsv from './export';
@@ -52,14 +52,18 @@ async function getBalances(accountId: AccountId, block_id: number): Promise<{ us
 }
 
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
-  const pgClient = new pg.Client({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
-  await pgClient.connect();
+  const pool = new Pool({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
   let rows_promises = [];
 
+  console.log('query_all', startDate, endDate, accountIds);
+
   for (const accountId of accountIds) {
-    const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from([accountId]), startDate, endDate]);
-    const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from([accountId]), startDate, endDate]);
+    const all_outgoing_txs_promise = pool.query(ALL_OUTGOING, [accountId, startDate, endDate]);
+    const all_incoming_txs_promise = pool.query(ALL_INCOMING, [accountId, startDate, endDate]);
     const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
+
+    console.log('all_outgoing_txs', all_outgoing_txs.rows.length);
+    console.log('all_incoming_txs', all_incoming_txs.rows.length);
 
     // TODO(pierre): consider using async to parallelize this
     for (const row of all_outgoing_txs.rows) {
@@ -75,7 +79,6 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   const sortedRows = sortByBlockTimestamp(rows);
   const csv = jsonToCsv(sortedRows);
-  await pgClient.end();
   return csv;
 }
 
