@@ -21,7 +21,6 @@ function getTransactionTypeSql(file: string): string {
 
 function getFiles() {
   const filesUnfiltered = fs.readdirSync(sqlFolder);
-  console.log({ filesUnfiltered });
   return filesUnfiltered.filter((file) => file.endsWith(DOT_SQL)).map((file) => path.join(sqlFolder, file));
 }
 
@@ -37,15 +36,14 @@ export default async function query_all(startDate: string, endDate: string, acco
   const rows = [];
 
   for (const accountId of accountIds) {
-    console.log(accountId);
-
     const all_outgoing_txs_promise = pgClient.query(ALL_OUTGOING, [Array.from([accountId]), startDate, endDate]);
     const all_incoming_txs_promise = pgClient.query(ALL_INCOMING, [Array.from([accountId]), startDate, endDate]);
     const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
     for (const row of all_outgoing_txs.rows) {
       let near_amount = row.args?.deposit ? -1 * (row.args.deposit / 10 ** 24) : 0;
-      near_amount = Math.abs(near_amount) > 0.01 ? near_amount : 0;
+      // Remove very small transfers, eg. -1E-24
+      near_amount = Math.abs(near_amount) >= 0.000001 ? near_amount : 0;
 
       let in_amount = '';
       let in_currency = '';
@@ -53,20 +51,15 @@ export default async function query_all(startDate: string, endDate: string, acco
       let out_amount = '';
       let out_currency = '';
 
-
       if (row.args.method_name === 'ft_transfer') {
         if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
-          console.log({ row });
           var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
           let raw_amount = row.args?.args_json?.amount;
 
           out_currency = symbol;
           out_amount = String(-1 * (raw_amount / 10 ** decimals));
         }
-      }
-
-      else if (row.args.method_name === 'swap') {
-        console.log({ row });
+      } else if (row.args.method_name === 'swap') {
         var { symbol, decimals } = await getCurrencyByContractFromNear(row.args.args_json.actions[0].token_in);
 
         let raw_amount_out = row.args?.args_json?.actions[0].min_amount_out;
@@ -77,24 +70,18 @@ export default async function query_all(startDate: string, endDate: string, acco
 
         let raw_amount_in = row.args?.args_json?.actions[0].amount_in;
         in_currency = symbol;
-        in_amount = String((raw_amount_in / 10 ** decimals));
-
-      }
-
-      else if (row.args.method_name === 'ft_transfer_call') {
-
-        // Gets arguments for function, converts from base64 if necessary 
+        in_amount = String(raw_amount_in / 10 ** decimals);
+      } else if (row.args.method_name === 'ft_transfer_call') {
+        // Gets arguments for function, converts from base64 if necessary
         let args_json = row.args?.args_json ? row.args.args_json : JSON.parse(atob(row.args.args_base64));
 
-        if (args_json.receiver_id?.includes("bulksender.near")) {
+        if (args_json.receiver_id?.includes('bulksender.near')) {
           let raw_amount_out = args_json.amount;
           var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
           out_currency = symbol;
           out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
-        }
-
-        else if (args_json.msg?.includes("force")) {
-          let msg = JSON.parse(args_json.msg?.replaceAll('\\', ""));
+        } else if (args_json.msg?.includes('force')) {
+          let msg = JSON.parse(args_json.msg?.replaceAll('\\', ''));
           let raw_amount_out = args_json.amount;
           var { symbol, decimals } = await getCurrencyByContractFromNear(msg.actions[0].token_in);
           out_currency = symbol;
@@ -102,10 +89,8 @@ export default async function query_all(startDate: string, endDate: string, acco
           var { symbol, decimals } = await getCurrencyByContractFromNear(msg.actions[0].token_out);
           let raw_amount_in = msg.actions[0].min_amount_out;
           in_currency = symbol;
-          in_amount = String((raw_amount_in / 10 ** decimals));
-        }
-
-        else {
+          in_amount = String(raw_amount_in / 10 ** decimals);
+        } else {
           let raw_amount_out = args_json.amount;
           var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
           out_currency = symbol;
@@ -137,14 +122,17 @@ export default async function query_all(startDate: string, endDate: string, acco
 
     for (const row of all_incoming_txs.rows) {
       let near_amount = row.args?.deposit ? row.args.deposit / 10 ** 24 : 0;
-      near_amount = near_amount > 0.01 ? near_amount : 0;
-      
+      near_amount = Math.abs(near_amount) >= 0.000001 ? near_amount : 0;
+      // There is a weird case when the system amount is almost 0 it doesn't count in the balance.
+      if (row.receipt_predecessor_account_id == 'system') {
+        near_amount = Math.abs(near_amount) >= 0.5 ? near_amount : 0;
+      }
+
       let in_amount = '';
       let in_currency = '';
 
       if (row.args.method_name === 'ft_transfer') {
         if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
-          console.log({ row });
           const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
           in_currency = symbol;
 
