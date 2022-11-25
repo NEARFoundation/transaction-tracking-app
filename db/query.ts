@@ -5,51 +5,11 @@ import jsonToCsv from './export';
 import { ALL_OUTGOING, ALL_INCOMING } from './queries/all';
 import Row from './row';
 import { AccountId, FTBalance, getCurrencyByContractFromNear, getFTBalance } from '../helpers/currency';
-
+import { getLockup } from '../helpers/lockup';
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
 // TODO: Consider allowing these values to be configurable per environment:
-const STATEMENT_TIMEOUT = 30 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
-
-const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
-const DOT_SQL = '.sql';
-
-function getTransactionTypeSql(file: string): string {
-  const sql = fs.readFileSync(file, 'utf8');
-  return sql;
-}
-
-function getFiles() {
-  const filesUnfiltered = fs.readdirSync(sqlFolder);
-  return filesUnfiltered.filter((file) => file.endsWith(DOT_SQL)).map((file) => path.join(sqlFolder, file));
-}
-
-function sortByBlockTimestamp(rows: Row[]): Row[] {
-  return rows.sort(function (a, b) {
-    return a.account_id.localeCompare(b.account_id) || a.block_timestamp - b.block_timestamp;
-  });
-}
-
-const seen_balances = new Map();
-
-async function getBalances(accountId: AccountId, block_id: number): Promise<{ usdc: FTBalance; dai: FTBalance }> {
-  const key = JSON.stringify({ accId: accountId, b_id: block_id });
-
-  if (seen_balances.has(key)) {
-    console.log('getBalances cache hit', accountId, block_id);
-
-    return seen_balances.get(key);
-  }
-
-  // USDC
-  const usdc = await getFTBalance('a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near', accountId, Number(block_id));
-
-  // DAI
-  const dai = await getFTBalance('6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near', accountId, Number(block_id));
-  seen_balances.set(key, { usdc, dai });
-
-  return { usdc, dai };
-}
+const STATEMENT_TIMEOUT = 3600 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
 
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
   const pool = new Pool({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
@@ -58,12 +18,12 @@ export default async function query_all(startDate: string, endDate: string, acco
   console.log('query_all', startDate, endDate, accountIds);
 
   for (const accountId of accountIds) {
-    const all_outgoing_txs_promise = pool.query(ALL_OUTGOING, [accountId, startDate, endDate]);
-    const all_incoming_txs_promise = pool.query(ALL_INCOMING, [accountId, startDate, endDate]);
-    const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
+    const lockupAccountId = getLockup('near', accountId);
+    console.log('lockupAccountId', lockupAccountId);
 
-    console.log('all_outgoing_txs', all_outgoing_txs.rows.length);
-    console.log('all_incoming_txs', all_incoming_txs.rows.length);
+    const all_outgoing_txs_promise = pool.query(ALL_OUTGOING, [[accountId, lockupAccountId], startDate, endDate]);
+    const all_incoming_txs_promise = pool.query(ALL_INCOMING, [[accountId, lockupAccountId], startDate, endDate]);
+    const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
 
     // TODO(pierre): consider using async to parallelize this
     for (const row of all_outgoing_txs.rows) {
@@ -146,6 +106,7 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
       out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
     }
   }
+
   // Removed because it takes too much time.
   // const ft_balances = await getBalances(accountId, row.block_height);
   let r = <Row>{
@@ -155,7 +116,7 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
     block_timestamp: row.block_timestamp,
     from_account: row.receipt_predecessor_account_id,
     block_height: row.block_height,
-    args: JSON.stringify(row.args.args_json),
+    args: JSON.stringify(getCommandsArgs(row.args)),
     transaction_hash: row.transaction_hash,
     // NEAR tokens
     amount_transferred: near_amount,
@@ -168,6 +129,7 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
     to_account: row.receipt_receiver_account_id,
     // onchain_dai_balance: ft_balances.dai.balance / 10 ** ft_balances.dai.decimals,
     // onchain_usdc_balance: ft_balances.usdc.balance / 10 ** ft_balances.usdc.decimals,
+    amount_staked: handle_staking(row, near_amount),
   };
 
   return r;
@@ -183,7 +145,6 @@ async function handleIncoming(accountId: AccountId, row: any): Promise<Row> {
 
   let in_amount = '';
   let in_currency = '';
-
   if (row.args.method_name === 'ft_transfer') {
     if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
       const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
@@ -203,7 +164,7 @@ async function handleIncoming(accountId: AccountId, row: any): Promise<Row> {
     block_timestamp: row.block_timestamp,
     from_account: row.receipt_predecessor_account_id,
     block_height: row.block_height,
-    args: JSON.stringify(row.args.args_json),
+    args: JSON.stringify(getCommandsArgs(row.args)),
     transaction_hash: row.transaction_hash,
     // NEAR tokens
     amount_transferred: near_amount,
@@ -214,7 +175,57 @@ async function handleIncoming(accountId: AccountId, row: any): Promise<Row> {
     to_account: row.receipt_receiver_account_id,
     // onchain_dai_balance: ft_balances.dai.balance / 10 ** ft_balances.dai.decimals,
     // onchain_usdc_balance: ft_balances.usdc.balance / 10 ** ft_balances.usdc.decimals,
+    amount_staked: handle_staking(row, near_amount),
   };
 
   return r;
+}
+
+function sortByBlockTimestamp(rows: Row[]): Row[] {
+  return rows.sort(function (a, b) {
+    return a.account_id.localeCompare(b.account_id) || a.block_timestamp - b.block_timestamp;
+  });
+}
+
+const seen_balances = new Map();
+
+async function getBalances(accountId: AccountId, block_id: number): Promise<{ usdc: FTBalance; dai: FTBalance }> {
+  const key = JSON.stringify({ accId: accountId, b_id: block_id });
+
+  if (seen_balances.has(key)) {
+    console.log('getBalances cache hit', accountId, block_id);
+
+    return seen_balances.get(key);
+  }
+
+  // USDC
+  const usdc = await getFTBalance('a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near', accountId, Number(block_id));
+
+  // DAI
+  const dai = await getFTBalance('6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near', accountId, Number(block_id));
+  seen_balances.set(key, { usdc, dai });
+
+  return { usdc, dai };
+}
+
+function getCommandsArgs(args: any): any {
+  let pretty = {};
+  if (args?.args_json) {
+    pretty = args.args_json;
+  } else if (args?.args_base64) {
+    pretty = JSON.parse(atob(args.args_base64));
+  }
+  return pretty;
+}
+
+function handle_staking(row: any, nearAmount: number) {
+  let tokens = 0;
+  // It's a transfer out of the account but for staking.
+  if (row.args.method_name === 'deposit' || row.args.method_name === 'deposit_and_stake') {
+    tokens = -1 * nearAmount;
+  }
+  if (row.receipt_predecessor_account_id.endsWith('.poolv1.near')) {
+    tokens = -1 * nearAmount;
+  }
+  return tokens;
 }
