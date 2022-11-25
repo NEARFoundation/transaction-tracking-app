@@ -221,7 +221,7 @@ function getCommandsArgs(args: any): any {
 function handle_staking(row: any, nearAmount: number) {
   let tokens = 0;
   // It's a transfer out of the account but for staking.
-  if (row.receipt_predecessor_account_id.endsWith('.poolv1.near') && (row.args.method_name === 'deposit' || row.args.method_name === 'deposit_and_stake')) {
+  if (row.receipt_receiver_account_id.endsWith('.poolv1.near') && (row.args.method_name === 'deposit' || row.args.method_name === 'deposit_and_stake')) {
     tokens = -1 * nearAmount;
   }
   if (row.receipt_predecessor_account_id.endsWith('.poolv1.near')) {
