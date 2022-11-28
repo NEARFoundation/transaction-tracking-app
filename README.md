@@ -36,6 +36,8 @@ The `pages/api` directory is mapped to `/api/*`. Files in this directory are tre
 
 # TODO
 
-Search this repo for 'TODO' to find things that need to be done.
-
-Also search for 'eslint-disable' and fix those.
+1. Search this repo for 'TODO' to find things that need to be done.
+1. Also search for 'eslint-disable' and fix those.
+1. Add unit tests.
+1. Add end-to-end tests.
+1. Add branch protection rules for `main` and `develop`.
