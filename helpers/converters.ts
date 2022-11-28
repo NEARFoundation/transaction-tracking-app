@@ -1,17 +1,23 @@
-import { type IndexerRow } from '../db/Row';
+import { type Args, type ArgsJson, type IndexerRow } from '../db/Row';
 
 const STAKING_ACCOUNT_SUFFIX = '.poolv1.near';
 
-export function getArgsAsString(args: IndexerRow['args']): string {
-  let pretty = {};
+// eslint-disable-next-line canonical/id-match
+export function getArgsAsObjectUsingBase64Fallback(args: Args | undefined): ArgsJson {
+  let argsJson;
   if (args?.args_json) {
-    pretty = args.args_json;
+    argsJson = args.args_json;
   } else if (args?.args_base64) {
     // TODO: What is this attempting to do? We need to update it to avoid using deprecated code.
-    pretty = JSON.parse(atob(args.args_base64));
+    argsJson = JSON.parse(atob(args.args_base64));
   }
 
-  return JSON.stringify(pretty);
+  return argsJson;
+}
+
+export function getArgsAsString(args: Args | undefined): string {
+  const object = getArgsAsObjectUsingBase64Fallback(args);
+  return JSON.stringify(object);
 }
 
 export function getNearAmountConsideringStaking(row: IndexerRow, nearAmount: number): number {

@@ -18,6 +18,22 @@ export type CsvRow = {
   args: string;
 };
 
+export type ArgsJson = {
+  amount: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  actions: any[]; // TODO: Improve the type.
+  receiver_id?: string;
+  msg?: string;
+};
+
+export type Args = {
+  method_name: string;
+  deposit: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args_base64: any; // TODO: Improve the type.
+  args_json: ArgsJson;
+};
+
 export type IndexerRow = {
   account_id: string;
   receipt_predecessor_account_id: string;
@@ -26,15 +42,5 @@ export type IndexerRow = {
   block_height: number;
   transaction_hash: string;
   action_kind: string;
-  args?: {
-    method_name: string;
-    deposit: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args_base64: any; // TODO: Improve the type.
-    args_json: {
-      amount: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      actions: any[]; // TODO: Improve the type.
-    };
-  };
+  args?: Args;
 };

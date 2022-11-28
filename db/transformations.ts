@@ -1,6 +1,6 @@
 /* eslint-disable canonical/sort-keys */
 
-import { getArgsAsString, getNearAmountConsideringStaking } from '../helpers/converters';
+import { getArgsAsObjectUsingBase64Fallback, getArgsAsString, getNearAmountConsideringStaking } from '../helpers/converters';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
 import { formatDateFromNano } from '../helpers/datetime';
 
@@ -102,7 +102,7 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
     ftAmountIn = divide(rawAmountIn, tokenOut.decimals);
   } else if (indexerRow.args?.method_name === 'ft_transfer_call') {
     // Gets arguments for function, converts from base64 if necessary
-    const argsJson = indexerRow.args?.args_json ? indexerRow.args.args_json : JSON.parse(atob(indexerRow.args.args_base64));
+    const argsJson = getArgsAsObjectUsingBase64Fallback(indexerRow.args);
 
     if (argsJson.receiver_id?.includes(BULKSENDER_ACCOUNT_ID)) {
       const rawAmountOut = argsJson.amount;
