@@ -8,7 +8,7 @@ import { Pool } from 'pg';
 import jsonToCsv from '../helpers/jsonToCsv';
 import { getLockup } from '../helpers/lockup';
 
-import type Row from './Row';
+import { type CsvRow } from './Row';
 import { handleIncoming, handleOutgoing } from './transformations';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
@@ -19,7 +19,7 @@ const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
 const ALL_OUTGOING = `${sqlFolder}/allOutgoing.sql`;
 const ALL_INCOMING = `${sqlFolder}/allIncoming.sql`;
 
-function sortByBlockTimestamp(rows: Row[]): Row[] {
+function sortByBlockTimestamp(rows: CsvRow[]): CsvRow[] {
   return rows.sort((a, b) => {
     return a.account_id.localeCompare(b.account_id) || a.block_timestamp - b.block_timestamp;
   });

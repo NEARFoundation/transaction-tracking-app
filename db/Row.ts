@@ -1,5 +1,5 @@
 /* eslint-disable typescript-sort-keys/interface */
-type Row = {
+export type CsvRow = {
   account_id: string;
   block_timestamp_utc: string;
   block_timestamp: number;
@@ -17,4 +17,24 @@ type Row = {
   amount_staked: number;
   args: string;
 };
-export default Row;
+
+export type IndexerRow = {
+  account_id: string;
+  receipt_predecessor_account_id: string;
+  receipt_receiver_account_id: string;
+  block_timestamp: number;
+  block_height: number;
+  transaction_hash: string;
+  action_kind: string;
+  args?: {
+    method_name: string;
+    deposit: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    args_base64: any; // TODO: Improve the type.
+    args_json: {
+      amount: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      actions: any[]; // TODO: Improve the type.
+    };
+  };
+};
