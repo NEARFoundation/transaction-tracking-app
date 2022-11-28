@@ -1,9 +1,8 @@
 import dayjs from 'dayjs';
-// eslint-disable-next-line import/extensions
-import relativeTime from 'dayjs/plugin/relativeTime.js';
-import utc from 'dayjs/plugin/utc.js';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import utc from 'dayjs/plugin/utc';
 // eslint-disable-next-line import/order
-import timezone from 'dayjs/plugin/timezone.js'; // dependent on utc plugin https://day.js.org/docs/en/plugin/timezone
+import timezone from 'dayjs/plugin/timezone'; // dependent on utc plugin https://day.js.org/docs/en/plugin/timezone
 
 dayjs.extend(utc); // https://day.js.org/docs/en/plugin/utc
 dayjs.extend(relativeTime); // https://day.js.org/docs/en/plugin/relative-time
@@ -26,3 +25,7 @@ export const getFormattedUtcDatetimeForFilename = (date: Date): string => {
   const formattedUtcDatetime = getFormattedUtcDatetime(date);
   return formattedUtcDatetime.replaceAll(' ', '_').replaceAll(':', '');
 };
+
+export function formatDateFromNano(blockTimestamp: number): string {
+  return getFormattedUtcDatetime(new Date(blockTimestamp / 1_000_000));
+}

@@ -1,3 +1,4 @@
+// TODO: Split these out into SQL files: allOutging.sql and allIncoming.sql.
 export const ALL_OUTGOING = `
 SELECT *
 FROM TRANSACTIONS T
