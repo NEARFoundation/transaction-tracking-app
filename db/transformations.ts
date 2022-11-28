@@ -31,9 +31,9 @@ function getRow(rawRow: RawQueryRow, accountId: AccountId, nearAmount: number, f
     ft_currency_in: ftCurrencyIn,
     ft_amount_out: ftAmountOut,
     ft_currency_out: ftCurrencyOut,
+    method_name: rawRow.action_kind === 'TRANSFER' ? 'transfer' : rawRow.args.method_name,
     amount_staked: getNearAmountConsideringStaking(rawRow, nearAmount),
     args: getArgsAsString(rawRow.args),
-    method_name: rawRow.action_kind === 'TRANSFER' ? 'transfer' : rawRow.args.method_name,
   };
 }
 

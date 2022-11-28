@@ -13,8 +13,8 @@ type Row = {
   ft_currency_in: string;
   ft_amount_out: string;
   ft_currency_out: string;
+  method_name: string;
   amount_staked: number;
   args: string;
-  method_name: string;
 };
 export default Row;
