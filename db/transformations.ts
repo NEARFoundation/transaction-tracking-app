@@ -1,6 +1,6 @@
 /* eslint-disable canonical/sort-keys */
 
-import { getArgsAsObjectUsingBase64Fallback, getArgsAsString, getNearAmountConsideringStaking } from '../helpers/converters';
+import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
 import { formatDateFromNano } from '../helpers/datetime';
 
@@ -29,7 +29,7 @@ function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number
     ft_currency_out: ftCurrencyOut,
     method_name: String(indexerRow.action_kind === 'TRANSFER' ? 'transfer' : indexerRow.args?.method_name),
     amount_staked: getNearAmountConsideringStaking(indexerRow, nearAmount),
-    args: getArgsAsString(indexerRow.args),
+    args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(indexerRow.args)),
   };
 }
 

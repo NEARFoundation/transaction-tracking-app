@@ -14,11 +14,6 @@ export function getArgsAsObjectUsingBase64Fallback(args: Args | undefined): Args
   return argsJson;
 }
 
-export function getArgsAsString(args: Args | undefined): string {
-  const object = getArgsAsObjectUsingBase64Fallback(args);
-  return JSON.stringify(object);
-}
-
 export function getNearAmountConsideringStaking(row: IndexerRow, nearAmount: number): number {
   let adjustedNearAmount = 0;
   // It's a transfer out of the account but for staking.
