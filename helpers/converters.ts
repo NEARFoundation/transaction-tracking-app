@@ -8,8 +8,7 @@ export function getArgsAsObjectUsingBase64Fallback(args: Args | undefined): Args
   if (args?.args_json) {
     argsJson = args.args_json;
   } else if (args?.args_base64) {
-    // TODO: What is this attempting to do? We need to update it to avoid using deprecated code.
-    argsJson = JSON.parse(atob(args.args_base64));
+    argsJson = JSON.parse(Buffer.from(args.args_base64, 'utf8').toString('base64'));
   }
 
   return argsJson;
