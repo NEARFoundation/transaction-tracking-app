@@ -20,24 +20,14 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <h1>TTA Basic</h1>
-        <p>
-          This is a temporary app while{' '}
-          <a href="https://github.com/NEARFoundation/tx-tracking-app" target="_blank" rel="noreferrer">
-            https://github.com/NEARFoundation/tx-tracking-app
-          </a>{' '}
-          is being improved.
-        </p>
-        <p>Currently it just pulls basic Send/Receive NEAR transactions and Send/Receive fungible token transactions.</p>
+        <h1>Transaction Tracking App</h1>
+        <p>This app creates a report of all debits and credits for specified accounts and their associated lockups.</p>
         <form method="post" action="/api/csv" style={{ marginTop: '2rem' }}>
           <input type="date" name="startDate" placeholder="YYYY-MM-DD" required defaultValue={defaultStartDateString} /> to{' '}
           <input type="date" name="endDate" placeholder="YYYY-MM-DD" required defaultValue={defaultEndDateString} /> (up until, and excluding)
           <textarea name="accountIds" placeholder="account IDs separated by linebreaks" style={{ width: '100%', height: '20rem' }} defaultValue={ACCOUNT_ID} required></textarea>
-          <button>Get CSV</button>
+          <button>Download report as CSV</button>
         </form>
-        <div style={{ fontSize: '80%', marginTop: '2rem' }}>
-          Since there is a 30-second timeout on the serverless function, you may need to reduce the date range or number of accounts.
-        </div>
       </main>
     </div>
   );

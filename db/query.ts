@@ -8,18 +8,16 @@ import { AccountId, FTBalance, getCurrencyByContractFromNear, getFTBalance } fro
 import { getLockup } from '../helpers/lockup';
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
-// TODO: Consider allowing these values to be configurable per environment:
-const STATEMENT_TIMEOUT = 3600 * 1_000; // 30 seconds in milliseconds. "number of milliseconds before a statement in query will time out" https://node-postgres.com/api/client
+const SQL_STATEMENT_TIMEOUT = 3600 * 1_000; // 1 hour in milliseconds.
 
 export default async function query_all(startDate: string, endDate: string, accountIds: Set<string>) {
-  const pool = new Pool({ connectionString: CONNECTION_STRING, statement_timeout: STATEMENT_TIMEOUT });
+  const pool = new Pool({ connectionString: CONNECTION_STRING, statement_timeout: SQL_STATEMENT_TIMEOUT });
   let rows_promises = [];
 
   console.log('query_all', startDate, endDate, accountIds);
 
   for (const accountId of accountIds) {
     const lockupAccountId = getLockup('near', accountId);
-    console.log('lockupAccountId', lockupAccountId);
 
     const all_outgoing_txs_promise = pool.query(ALL_OUTGOING, [[accountId, lockupAccountId], startDate, endDate]);
     const all_incoming_txs_promise = pool.query(ALL_INCOMING, [[accountId, lockupAccountId], startDate, endDate]);
@@ -193,8 +191,6 @@ async function getBalances(accountId: AccountId, block_id: number): Promise<{ us
   const key = JSON.stringify({ accId: accountId, b_id: block_id });
 
   if (seen_balances.has(key)) {
-    console.log('getBalances cache hit', accountId, block_id);
-
     return seen_balances.get(key);
   }
 
