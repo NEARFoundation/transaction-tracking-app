@@ -1,6 +1,6 @@
-# Intro
+# NEAR Transaction Tracker App (also known as "Transactions Accounting Report")
 
-This is a temporary app while https://github.com/NEARFoundation/tx-tracking-app is being improved.
+Transaction Tracker App (TTA) produces a report that helps teams across the ecosystem to see a simplified view of all transactions over a certain period (e.g. the Finance/Legal/Operations team uses it to reconcile their transactions and stay compliant).
 
 # Framework
 
@@ -12,13 +12,22 @@ It automatically deploys each commit of the `main` branch to https://tta-basic.o
 
 See https://dashboard.render.com/
 
-## Getting Started
+# Getting Started
+
+## Install VSC extensions:
+
+- https://marketplace.visualstudio.com/items?itemName=bradymholt.pgformatter
+- https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode
+- https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint
+- https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight (optional)
+
+## Edit the environment variables
 
 `cp .env.development.local.example .env.development.local`
 
 Then edit the values.
 
-Run the development server:
+## Run the development server:
 
 ```bash
 npm run dev
