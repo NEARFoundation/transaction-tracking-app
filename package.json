@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "record_commit_hash_and_build_time": "now=$(date -u \"+%Y-%m-%d %H:%M:%S\") && last_commit=$(git rev-parse HEAD) && echo \"{\\\"commit\\\": \\\"$last_commit\\\", \\\"build_time\\\": \\\"$now\\\"}\" > public/version.json",
+    "prebuild": "yarn record_commit_hash_and_build_time",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
