@@ -14,22 +14,22 @@ const YOCTO_CONVERSION_CONSTANT = 10 ** 24;
 
 function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
   return {
+    date: formatDateFromNano(indexerRow.block_timestamp),
     account_id: accountId,
-    block_timestamp_utc: formatDateFromNano(indexerRow.block_timestamp),
+    method_name: String(indexerRow.action_kind === 'TRANSFER' ? 'transfer' : indexerRow.args?.method_name),
     block_timestamp: indexerRow.block_timestamp,
-    block_height: indexerRow.block_height,
-    transaction_hash: indexerRow.transaction_hash,
     from_account: indexerRow.receipt_predecessor_account_id,
-    to_account: indexerRow.receipt_receiver_account_id,
-    amount_transferred_in_near: nearAmount,
+    block_height: indexerRow.block_height,
+    args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(indexerRow.args)),
+    transaction_hash: indexerRow.transaction_hash,
+    amount_transferred: nearAmount,
     // Fungible Token
-    ft_amount_in: ftAmountIn,
-    ft_currency_in: ftCurrencyIn,
     ft_amount_out: ftAmountOut,
     ft_currency_out: ftCurrencyOut,
-    method_name: String(indexerRow.action_kind === 'TRANSFER' ? 'transfer' : indexerRow.args?.method_name),
+    ft_amount_in: ftAmountIn,
+    ft_currency_in: ftCurrencyIn,
+    to_account: indexerRow.receipt_receiver_account_id,
     amount_staked: getNearAmountConsideringStaking(indexerRow, nearAmount),
-    args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(indexerRow.args)),
   };
 }
 

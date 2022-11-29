@@ -14,7 +14,7 @@ dayjs.extend(timezone);
  * @returns {string} like 2022-08-03 17:32:00 UTC
  */
 export const getFormattedUtcDatetime = (date: Date): string => {
-  return dayjs(date).utc().format('YYYY-MM-DD HH:mm:ss [UTC]'); // https://day.js.org/docs/en/manipulate/utc
+  return dayjs(date).utc().format('YYYY-MM-DD'); // https://day.js.org/docs/en/manipulate/utc
 };
 
 export function getFormattedUtcDatetimeNow(): string {

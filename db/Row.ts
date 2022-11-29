@@ -1,14 +1,14 @@
 /* eslint-disable typescript-sort-keys/interface */
 export type CsvRow = {
   account_id: string;
-  block_timestamp_utc: string;
+  date: string;
   block_timestamp: number;
   block_height: number;
   transaction_hash: string;
   // transaction_type: string;
   from_account: string;
   to_account: string;
-  amount_transferred_in_near: number;
+  amount_transferred: number;
   ft_amount_in: string;
   ft_currency_in: string;
   ft_amount_out: string;
