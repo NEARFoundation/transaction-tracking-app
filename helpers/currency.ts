@@ -49,3 +49,24 @@ export async function getFungibleTokenBalance(fungibleTokenContractAccountId: Ac
   const { symbol, name, decimals } = await getCurrencyByContractFromNear(fungibleTokenContractAccountId);
   return { balance, decimals, name, symbol };
 }
+
+const seenBalances = new Map();
+
+// Function is required. We will use it the future to get onchain balances
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function getBalances(accountId: AccountId, blockId: number): Promise<{ dai: FungibleTokenBalance; usdc: FungibleTokenBalance }> {
+  const key = JSON.stringify({ accId: accountId, b_id: blockId });
+
+  if (seenBalances.has(key)) {
+    return seenBalances.get(key);
+  }
+
+  // USDC
+  const usdc = await getFungibleTokenBalance('a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near', accountId, Number(blockId));
+
+  // DAI
+  const dai = await getFungibleTokenBalance('6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near', accountId, Number(blockId));
+  seenBalances.set(key, { dai, usdc });
+
+  return { dai, usdc };
+}

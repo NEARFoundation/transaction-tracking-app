@@ -8,7 +8,7 @@ export function getArgsAsObjectUsingBase64Fallback(args: Args | undefined): Args
   if (args?.args_json) {
     argsJson = args.args_json;
   } else if (args?.args_base64) {
-    argsJson = JSON.parse(Buffer.from(args.args_base64, 'utf8').toString('base64'));
+    argsJson = JSON.parse(Buffer.from(args.args_base64, 'base64').toString('utf8'));
   }
 
   return argsJson;
