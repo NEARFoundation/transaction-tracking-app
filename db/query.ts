@@ -224,9 +224,6 @@ async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
     amount_staked: handle_staking(row, near_amount),
   };
 
-  console.log("Return Incoming FT")
-  console.log(r)
-
   return r;
 }
 
