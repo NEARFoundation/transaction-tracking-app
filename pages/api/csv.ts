@@ -11,7 +11,7 @@ function getDefaultFilename(): string {
 }
 
 function getCleanedAccountIds(accountIds: string): Set<string> {
-  return new Set(accountIds.replace('\r', '').split('\n'));
+  return new Set(accountIds.replaceAll('\r', '').split('\n'));
 }
 
 export default async function handler(request: NextApiRequest, res: NextApiResponse<string>) {
@@ -33,3 +33,11 @@ export default async function handler(request: NextApiRequest, res: NextApiRespo
     res.status(STATUS_ERROR).send(JSON.stringify(error));
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '8mb',
+    },
+  },
+};
