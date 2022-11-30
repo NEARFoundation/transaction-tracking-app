@@ -1,4 +1,7 @@
+/* eslint-disable canonical/filename-match-exported */
 import Head from 'next/head';
+
+import { getTransactionTypes } from '../db/query';
 import styles from '../styles/Home.module.css';
 
 const ACCOUNT_ID = process.env.ACCOUNT_ID;
@@ -10,7 +13,7 @@ const defaultEndDate = new Date();
 defaultEndDate.setDate(defaultEndDate.getDate() + 1); // tomorrow
 const defaultEndDateString = defaultEndDate.toISOString().slice(0, 10);
 
-export default function Home() {
+export default function Home({ transactionTypes }: { transactionTypes: string[] }) {
   return (
     <div className={styles.container}>
       <Head>
@@ -31,4 +34,11 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+export async function getServerSideProps() {
+  const transactionTypes = getTransactionTypes();
+  return {
+    props: { transactionTypes }, // will be passed to the page component as props
+  };
 }
