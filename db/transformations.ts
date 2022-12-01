@@ -6,14 +6,14 @@
 import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
 import { formatDateFromNano } from '../helpers/datetime';
+import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, divide, YOCTO_CONVERSION_CONSTANT } from '../helpers/math';
 
 import { type CsvRow, type IndexerRow } from './Row';
 
 const SYSTEM_ACCOUNT_ID = 'system';
 const BULKSENDER_ACCOUNT_ID = 'bulksender.near';
-const MINIMUM_AMOUNT = 0.000_001;
+
 const MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT = 0.5;
-const YOCTO_CONVERSION_CONSTANT = 10 ** 24;
 
 function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
   return {
@@ -34,18 +34,6 @@ function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number
     to_account: indexerRow.receipt_receiver_account_id,
     amount_staked: getNearAmountConsideringStaking(indexerRow, nearAmount),
   };
-}
-
-function divide(rawAmount: number, decimals: number): string {
-  // TODO: Document what is happening and why (and improve the function name).
-  return String(rawAmount / 10 ** decimals);
-}
-
-function convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow: IndexerRow): number {
-  let nearAmount = indexerRow.args?.deposit ? indexerRow.args.deposit / YOCTO_CONVERSION_CONSTANT : 0; // converting from yoctonear to near
-  // Round very small transfers down to 0. TODO: Document why this is a good idea or a requirement. Consider improving the name of the constant.
-  nearAmount = Math.abs(nearAmount) >= MINIMUM_AMOUNT ? nearAmount : 0;
-  return nearAmount;
 }
 
 // TODO: Improve the name. Continue reducing duplication with handleOutgoing.
