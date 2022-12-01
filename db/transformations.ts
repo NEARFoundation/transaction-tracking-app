@@ -6,7 +6,7 @@
 import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
 import { formatDateFromNano } from '../helpers/datetime';
-import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, divide, YOCTO_CONVERSION_CONSTANT } from '../helpers/math';
+import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, divideByPowerOfTen, YOCTO_CONVERSION_CONSTANT } from '../helpers/math';
 
 import { type CsvRow, type IndexerRow } from './Row';
 
@@ -51,7 +51,7 @@ export async function handleIncoming(accountId: AccountId, indexerRow: IndexerRo
     inCurrency = symbol;
 
     const rawAmount = indexerRow.args?.args_json?.amount;
-    inAmount = divide(rawAmount, decimals);
+    inAmount = divideByPowerOfTen(rawAmount, decimals);
   }
 
   const result: CsvRow = getRow(indexerRow, accountId, nearAmount, inAmount, inCurrency);
@@ -76,7 +76,7 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
       const rawAmount = indexerRow.args?.args_json?.amount;
 
       ftCurrencyOut = symbol;
-      ftAmountOut = divide(-1 * rawAmount, decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmount, decimals);
     }
     // TODO Is the lack of `else` here intentional?
   } else if (indexerRow.args?.method_name === 'swap') {
@@ -84,13 +84,13 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
 
     const rawAmountOut = indexerRow.args?.args_json?.actions[0].min_amount_out;
     ftCurrencyOut = tokenIn.symbol;
-    ftAmountOut = divide(-1 * rawAmountOut, tokenIn.decimals);
+    ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, tokenIn.decimals);
 
     const tokenOut = await getCurrencyByContractFromNear(indexerRow.args?.args_json.actions[0].token_out);
 
     const rawAmountIn = indexerRow.args?.args_json?.actions[0].amount_in;
     ftCurrencyIn = tokenOut.symbol;
-    ftAmountIn = divide(rawAmountIn, tokenOut.decimals);
+    ftAmountIn = divideByPowerOfTen(rawAmountIn, tokenOut.decimals);
   } else if (indexerRow.args?.method_name === 'ft_transfer_call') {
     // Gets arguments for function, converts from base64 if necessary
     const argsJson = getArgsAsObjectUsingBase64Fallback(indexerRow.args);
@@ -99,22 +99,22 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
       const rawAmountOut = argsJson.amount;
       const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
       ftCurrencyOut = symbol;
-      ftAmountOut = divide(-1 * rawAmountOut, decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, decimals);
     } else if (argsJson.msg?.includes('force')) {
       const message = JSON.parse(argsJson.msg?.replaceAll('\\', ''));
       const rawAmountOut = argsJson.amount;
       const tokenIn = await getCurrencyByContractFromNear(message.actions[0].token_in);
       ftCurrencyOut = tokenIn.symbol;
-      ftAmountOut = divide(-1 * rawAmountOut, tokenIn.decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, tokenIn.decimals);
       const tokenOut = await getCurrencyByContractFromNear(message.actions[0].token_out);
       const rawAmountIn = message.actions[0].min_amount_out;
       ftCurrencyIn = tokenOut.symbol;
-      ftAmountIn = divide(rawAmountIn, tokenOut.decimals);
+      ftAmountIn = divideByPowerOfTen(rawAmountIn, tokenOut.decimals);
     } else {
       const rawAmount = argsJson.amount;
       const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
       ftCurrencyOut = symbol;
-      ftAmountOut = divide(-1 * rawAmount, decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmount, decimals);
     }
   }
 

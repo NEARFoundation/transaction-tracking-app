@@ -3,9 +3,12 @@ import { type IndexerRow } from '../db/Row';
 const MINIMUM_AMOUNT = 0.000_001;
 export const YOCTO_CONVERSION_CONSTANT = 10 ** 24;
 
-export function divide(rawAmount: number, decimals: number): string {
-  // TODO: Document what is happening and why (and improve the function name).
-  return String(rawAmount / 10 ** decimals);
+/**
+ * Dividing by a power of 10 simply moves the decimal to the left the same number of places as the exponent.
+ * TODO: Document why / when this is useful / necessary.
+ */
+export function divideByPowerOfTen(rawAmount: number, exponent: number): string {
+  return String(rawAmount / 10 ** exponent);
 }
 
 export function convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow: IndexerRow): number {
