@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "record_commit_hash_and_build_time": "now=$(date -u \"+%Y-%m-%d %H:%M:%S\") && last_commit=$(git rev-parse HEAD) && echo \"{\\\"commit\\\": \\\"$last_commit\\\", \\\"build_time\\\": \\\"$now\\\"}\" > public/version.json",
+    "prebuild": "yarn record_commit_hash_and_build_time",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -16,16 +18,17 @@
     "dayjs": "^1.11.6",
     "eslint": "8.28.0",
     "eslint-config-next": "13.0.4",
+    "near-api-js": "^0.44.2",
     "next": "13.0.4",
     "pg": "^8.8.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "4.9.3",
-    "near-api-js": "^0.44.2"
+    "typescript": "4.9.3"
   },
   "devDependencies": {
     "@nearfoundation/near-prettier-config": "^1.0.1",
     "@types/pg": "^8.6.5",
+    "eslint-config-near": "^1.0.3",
     "prettier": "^2.7.1"
   },
   "prettier": "@nearfoundation/near-prettier-config",
