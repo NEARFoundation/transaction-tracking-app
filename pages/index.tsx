@@ -18,7 +18,9 @@ const initialAccountIds: AccountId[] = ACCOUNT_IDS ? ACCOUNT_IDS.split(',') : []
 
 // eslint-disable-next-line max-lines-per-function
 export default function Home() {
-  // `accountIds` is an array instead of a Set so that users can temporarily paste multiple lines of the same account ID and then edit them to be unique before submitting the form. If they were a Set, pasting an account ID more than once would result in confusing behavior of the form just showing the first paste.
+  /* `accountIds` is an array instead of a Set so that users can temporarily paste multiple lines of the same account ID and then edit them to be
+   unique before submitting the form. If they were a Set, pasting an account ID more than once would result in confusing behavior of the form just
+   showing the first paste. */
   const [accountIds, setAccountIds] = useState<AccountId[]>(initialAccountIds);
   // See comment in `onSubmit` about why not to use just `useLocalStorage`.
   const [accountIdsLocalStorage, setAccountIdsLocalStorage] = useLocalStorage<AccountId[]>('accountIds', initialAccountIds); // useLocalStorage seemed unable to save Set<AccountId>.
@@ -32,7 +34,9 @@ export default function Home() {
   function onSubmit() {
     const accountIdsSet = new Set(accountIds); // Removing duplicates.
     console.log('onSubmit', { accountIdsSet });
-    setAccountIdsLocalStorage(Array.from(accountIdsSet)); // The app doesn't save the accountIds to localStorage until form submission because https://en.wikipedia.org/wiki/Principle_of_least_astonishment.
+    /* The app doesn't save the accountIds to localStorage until form submission because of Principle
+    of Least Surprise: https://en.wikipedia.org/wiki/Principle_of_least_astonishment. */
+    setAccountIdsLocalStorage(Array.from(accountIdsSet));
   }
 
   useEffect(() => {
