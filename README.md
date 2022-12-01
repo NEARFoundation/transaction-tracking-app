@@ -1,6 +1,6 @@
-# Intro
+# NEAR Transaction Tracker App (also known as "Transactions Accounting Report")
 
-This is a temporary app while https://github.com/NEARFoundation/tx-tracking-app is being improved.
+Transaction Tracker App (TTA) produces a report that helps teams across the ecosystem to see a simplified view of all transactions over a certain period (e.g. the Finance/Legal/Operations team uses it to reconcile their transactions and stay compliant).
 
 # Framework
 
@@ -12,13 +12,22 @@ It automatically deploys each commit of the `main` branch to https://tta-basic.o
 
 See https://dashboard.render.com/
 
-## Getting Started
+# Getting Started
+
+## Install VSC extensions:
+
+- https://marketplace.visualstudio.com/items?itemName=bradymholt.pgformatter
+- https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode
+- https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint
+- https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight (optional)
+
+## Edit the environment variables
 
 `cp .env.development.local.example .env.development.local`
 
 Then edit the values.
 
-Run the development server:
+## Run the development server:
 
 ```bash
 npm run dev
@@ -33,3 +42,11 @@ You can start editing the page by modifying `pages/index.tsx`. The page auto-upd
 [API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
 
 The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+
+# TODO
+
+1. Search this repo for 'TODO' to find things that need to be done.
+1. Also search for 'eslint-disable' and fix those.
+1. Add unit tests.
+1. Add end-to-end tests.
+1. Add branch protection rules for `main` and `develop`.
