@@ -184,9 +184,6 @@ export async function handleFtIncoming(accountId: AccountId, row: IndexerRow): P
     amount_staked: getNearAmountConsideringStaking(row, near_amount),
   };
 
-  console.log('Return Incoming FT');
-  console.log(csvRow);
-
   return csvRow;
   /* eslint-enable */
 }
