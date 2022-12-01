@@ -193,6 +193,11 @@ async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
     near_amount = Math.abs(near_amount) >= 0.5 ? near_amount : 0;
   }
 
+  // Skipping NEAR Amount when it is not going to NF associated account ids 
+  if (to != accountId || to != getLockup('near', accountId)) {
+    near_amount = 0;
+  }
+
   let in_amount = '';
   let in_currency = '';
   if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
