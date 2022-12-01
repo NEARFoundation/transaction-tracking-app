@@ -36,6 +36,7 @@ export type Args = {
 
 export type IndexerRow = {
   account_id: string;
+  receiver_account_id: string;
   receipt_predecessor_account_id: string;
   receipt_receiver_account_id: string;
   block_timestamp: number;

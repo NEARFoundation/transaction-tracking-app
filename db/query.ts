@@ -9,15 +9,16 @@ import jsonToCsv from '../helpers/jsonToCsv';
 import { getLockup } from '../helpers/lockup';
 
 import { type CsvRow } from './Row';
-import { handleIncoming, handleOutgoing } from './transformations';
+import { handleFtIncoming, handleIncoming, handleOutgoing } from './transformations';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
 const SQL_STATEMENT_TIMEOUT = 60 * 60 * 1_000; // 1 hour in milliseconds.
 const LOCKUP_MASTER_ACCOUNT_ID = 'near';
 const sqlFolder = path.join(path.join(process.cwd(), 'db'), 'queries');
-const ALL_OUTGOING = `${sqlFolder}/allOutgoing.sql`;
-const ALL_INCOMING = `${sqlFolder}/allIncoming.sql`;
+const OUTGOING = `${sqlFolder}/outgoing.sql`;
+const INCOMING = `${sqlFolder}/incoming.sql`;
+const FT_INCOMING = `${sqlFolder}/fungibleTokensIncoming.sql`;
 
 function sortByBlockTimestamp(rows: CsvRow[]): CsvRow[] {
   return rows.sort((a, b) => {
@@ -39,16 +40,25 @@ export default async function query(startDate: string, endDate: string, accountI
   for (const accountId of Array.from(accountIds)) {
     const lockupAccountId = getLockup(LOCKUP_MASTER_ACCOUNT_ID, accountId);
 
-    const allOutgoingTransactionsPromise = pool.query(getSql(ALL_OUTGOING), [[accountId, lockupAccountId], startDate, endDate]);
-    const allIncomingTransactionsPromise = pool.query(getSql(ALL_INCOMING), [[accountId, lockupAccountId], startDate, endDate]);
-    const [allOutgoingTransactions, allIncomingTransactions] = await Promise.all([allOutgoingTransactionsPromise, allIncomingTransactionsPromise]);
+    const outgoingTransactionsPromise = pool.query(getSql(OUTGOING), [[accountId, lockupAccountId], startDate, endDate]);
+    const incomingTransactionsPromise = pool.query(getSql(INCOMING), [[accountId, lockupAccountId], startDate, endDate]);
+    const ftIncomingTransactionsPromise = pool.query(getSql(FT_INCOMING), [[accountId, lockupAccountId], startDate, endDate]);
+    const [outgoingTransactions, incomingTransactions, ftIncomingTransactions] = await Promise.all([
+      outgoingTransactionsPromise,
+      incomingTransactionsPromise,
+      ftIncomingTransactionsPromise,
+    ]);
 
-    for (const row of allOutgoingTransactions.rows) {
+    for (const row of outgoingTransactions.rows) {
       rowPromises.push(handleOutgoing(accountId, row));
     }
 
-    for (const row of allIncomingTransactions.rows) {
+    for (const row of incomingTransactions.rows) {
       rowPromises.push(handleIncoming(accountId, row));
+    }
+
+    for (const row of ftIncomingTransactions.rows) {
+      rowPromises.push(handleFtIncoming(accountId, row));
     }
   }
 

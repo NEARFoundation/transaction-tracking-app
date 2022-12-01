@@ -1,3 +1,6 @@
+/* eslint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable eslint-comments/no-unlimited-disable */
+
 /* eslint-disable canonical/sort-keys */
 
 import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
@@ -130,4 +133,60 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
   const result: CsvRow = getRow(indexerRow, accountId, nearAmount, ftAmountIn, ftCurrencyIn, ftAmountOut, ftCurrencyOut);
 
   return result;
+}
+
+/**
+ * Fungible tokens
+ */
+
+// eslint-disable-next-line max-lines-per-function
+export async function handleFtIncoming(accountId: AccountId, row: IndexerRow): Promise<CsvRow> {
+  // TODO: Remove `eslint-disable`. Reduce duplication of code below by using shared functions elsewhere.
+  /* eslint-disable */
+  const toAccount = row.receiver_account_id;
+  let near_amount = row.args?.deposit ? row.args.deposit / YOCTO_CONVERSION_CONSTANT : 0;
+  near_amount = Math.abs(near_amount) >= 0.000_001 ? near_amount : 0;
+  // Gas refund are already accounted in other transactions.
+  if (row.receipt_predecessor_account_id == 'system') {
+    near_amount = Math.abs(near_amount) >= MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT ? near_amount : 0;
+  }
+
+  let in_amount = '';
+  let in_currency = '';
+  if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+    const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+    in_currency = symbol;
+
+    let raw_amount = row.args?.args_json?.amount;
+    in_amount = String(raw_amount / 10 ** decimals);
+  }
+
+  // Removed because it takes too much time.
+  // const ft_balances = await getBalances(accountId, row.block_height);
+
+  let csvRow: CsvRow = {
+    date: formatDateFromNano(row.block_timestamp),
+    account_id: accountId,
+    method_name: String(row.action_kind == 'TRANSFER' ? 'transfer' : row.args?.method_name),
+    block_timestamp: row.block_timestamp,
+    from_account: row.receipt_predecessor_account_id,
+    block_height: row.block_height,
+    args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(row.args)),
+    transaction_hash: row.transaction_hash,
+    // NEAR tokens
+    amount_transferred: near_amount,
+    // Fugible Token
+    ft_amount_out: '',
+    ft_currency_out: '',
+    ft_amount_in: in_amount,
+    ft_currency_in: in_currency,
+    to_account: toAccount,
+    amount_staked: getNearAmountConsideringStaking(row, near_amount),
+  };
+
+  console.log('Return Incoming FT');
+  console.log(csvRow);
+
+  return csvRow;
+  /* eslint-enable */
 }

@@ -48,8 +48,8 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>TTA Basic</title>
-        <meta name="description" content="" />
+        <title>Transaction Tracking App</title>
+        <meta name="description" content="This app creates a report of all debits and credits for specified accounts and their associated lockups." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
