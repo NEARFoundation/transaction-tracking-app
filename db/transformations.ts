@@ -80,13 +80,13 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
     }
     // TODO Is the lack of `else` here intentional?
   } else if (indexerRow.args?.method_name === 'swap') {
-    const tokenIn = await getCurrencyByContractFromNear(indexerRow.args?.args_json.actions[0].token_in);
+    const tokenIn = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_in);
 
     const rawAmountOut = indexerRow.args?.args_json?.actions[0].min_amount_out;
     ftCurrencyOut = tokenIn.symbol;
     ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, tokenIn.decimals);
 
-    const tokenOut = await getCurrencyByContractFromNear(indexerRow.args?.args_json.actions[0].token_out);
+    const tokenOut = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_out);
 
     const rawAmountIn = indexerRow.args?.args_json?.actions[0].amount_in;
     ftCurrencyIn = tokenOut.symbol;
