@@ -60,7 +60,7 @@ export async function convertIncomingTransactionsFromIndexerToCsvRow(accountId: 
   return result;
 }
 
-async function handleFtOutgoing(indexerRow: IndexerRow): Promise<{ ftAmountOut: string; ftCurrencyOut: string }> {
+async function getOutgoingFungibleTokenDetailsFromIndexerRow(indexerRow: IndexerRow): Promise<{ ftAmountOut: string; ftCurrencyOut: string }> {
   let ftAmountOut = '';
   let ftCurrencyOut = '';
 
@@ -86,7 +86,7 @@ export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: 
   let ftCurrencyOut = '';
 
   if (indexerRow.args?.method_name === 'ft_transfer') {
-    ({ ftAmountOut, ftCurrencyOut } = await handleFtOutgoing(indexerRow));
+    ({ ftAmountOut, ftCurrencyOut } = await getOutgoingFungibleTokenDetailsFromIndexerRow(indexerRow));
   } else if (indexerRow.args?.method_name === 'swap') {
     const tokenIn = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_in);
     const rawAmountOut = indexerRow.args?.args_json?.actions[0].min_amount_out;
