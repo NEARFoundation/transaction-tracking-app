@@ -1,6 +1,6 @@
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable eslint-comments/no-unlimited-disable */
-
+/* eslint no-use-before-define: "error"*/
 /* eslint-disable canonical/sort-keys */
 
 import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
@@ -12,10 +12,9 @@ import { type CsvRow, type IndexerRow } from './Row';
 
 const SYSTEM_ACCOUNT_ID = 'system';
 const BULKSENDER_ACCOUNT_ID = 'bulksender.near';
-
 const MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT = 0.5;
 
-function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
+function getFinalCsvRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
   return {
     date: formatDateFromNano(indexerRow.block_timestamp),
     account_id: accountId,
@@ -36,8 +35,10 @@ function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number
   };
 }
 
-// TODO: Improve the name. Continue reducing duplication with handleOutgoing.
-export async function handleIncoming(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
+/**
+ * Handles the transactions that are incoming to the account
+ */
+export async function convertIncomingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
   let nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
   // Gas refund are already accounted in other transactions.
   if (indexerRow.receipt_predecessor_account_id === SYSTEM_ACCOUNT_ID) {
@@ -54,14 +55,28 @@ export async function handleIncoming(accountId: AccountId, indexerRow: IndexerRo
     inAmount = divideByPowerOfTen(rawAmount, decimals);
   }
 
-  const result: CsvRow = getRow(indexerRow, accountId, nearAmount, inAmount, inCurrency);
+  const result: CsvRow = getFinalCsvRow(indexerRow, accountId, nearAmount, inAmount, inCurrency);
 
   return result;
 }
 
-// TODO: Improve the name.  Document what is happening and why. Split into smaller functions.
+async function getOutgoingFungibleTokenDetailsFromIndexerRow(indexerRow: IndexerRow): Promise<{ ftAmountOut: string; ftCurrencyOut: string }> {
+  let ftAmountOut = '';
+  let ftCurrencyOut = '';
+
+  if (indexerRow.args?.args_json?.amount && indexerRow.receipt_receiver_account_id) {
+    const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
+    const rawAmount = indexerRow.args?.args_json?.amount;
+
+    ftCurrencyOut = symbol;
+    ftAmountOut = divideByPowerOfTen(-1 * rawAmount, decimals);
+  }
+
+  return { ftAmountOut, ftCurrencyOut };
+}
+
 // eslint-disable-next-line max-lines-per-function
-export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
+export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
   const nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
 
   let ftAmountIn = '';
@@ -71,21 +86,12 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
   let ftCurrencyOut = '';
 
   if (indexerRow.args?.method_name === 'ft_transfer') {
-    if (indexerRow.args?.args_json?.amount && indexerRow.receipt_receiver_account_id) {
-      const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
-      const rawAmount = indexerRow.args?.args_json?.amount;
-
-      ftCurrencyOut = symbol;
-      ftAmountOut = divideByPowerOfTen(-1 * rawAmount, decimals);
-    }
-    // TODO Is the lack of `else` here intentional?
+    ({ ftAmountOut, ftCurrencyOut } = await getOutgoingFungibleTokenDetailsFromIndexerRow(indexerRow));
   } else if (indexerRow.args?.method_name === 'swap') {
     const tokenIn = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_in);
-
     const rawAmountOut = indexerRow.args?.args_json?.actions[0].min_amount_out;
     ftCurrencyOut = tokenIn.symbol;
     ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, tokenIn.decimals);
-
     const tokenOut = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_out);
 
     const rawAmountIn = indexerRow.args?.args_json?.actions[0].amount_in;
@@ -118,7 +124,7 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
     }
   }
 
-  const result: CsvRow = getRow(indexerRow, accountId, nearAmount, ftAmountIn, ftCurrencyIn, ftAmountOut, ftCurrencyOut);
+  const result: CsvRow = getFinalCsvRow(indexerRow, accountId, nearAmount, ftAmountIn, ftCurrencyIn, ftAmountOut, ftCurrencyOut);
 
   return result;
 }
@@ -128,50 +134,48 @@ export async function handleOutgoing(accountId: AccountId, indexerRow: IndexerRo
  */
 
 // eslint-disable-next-line max-lines-per-function
-export async function handleFtIncoming(accountId: AccountId, row: IndexerRow): Promise<CsvRow> {
-  // TODO: Remove `eslint-disable`. Reduce duplication of code below by using shared functions elsewhere.
-  /* eslint-disable */
+export async function convertIncomingFungibleTokenTransactionsFromIndexerToCsvRow(accountId: AccountId, row: IndexerRow): Promise<CsvRow> {
   const toAccount = row.receiver_account_id;
-  let near_amount = row.args?.deposit ? row.args.deposit / YOCTO_CONVERSION_CONSTANT : 0;
-  near_amount = Math.abs(near_amount) >= 0.000_001 ? near_amount : 0;
+  let nearAmount = row.args?.deposit ? row.args.deposit / YOCTO_CONVERSION_CONSTANT : 0;
+  nearAmount = Math.abs(nearAmount) >= 0.000_001 ? nearAmount : 0;
   // Gas refund are already accounted in other transactions.
-  if (row.receipt_predecessor_account_id == 'system') {
-    near_amount = Math.abs(near_amount) >= MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT ? near_amount : 0;
+  if (row.receipt_predecessor_account_id === 'system') {
+    nearAmount = Math.abs(nearAmount) >= MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT ? nearAmount : 0;
   }
 
-  let in_amount = '';
-  let in_currency = '';
+  let inAmount = '';
+  let inCurrency = '';
   if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
     const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
-    in_currency = symbol;
+    inCurrency = symbol;
 
-    let raw_amount = row.args?.args_json?.amount;
-    in_amount = String(raw_amount / 10 ** decimals);
+    const rawAmount = row.args?.args_json?.amount;
+    inAmount = String(rawAmount / 10 ** decimals);
   }
 
   // Removed because it takes too much time.
   // const ft_balances = await getBalances(accountId, row.block_height);
 
-  let csvRow: CsvRow = {
+  const csvRow: CsvRow = {
+    // TODO: Reduce duplication with `getFinalCsvRow`.
     date: formatDateFromNano(row.block_timestamp),
     account_id: accountId,
-    method_name: String(row.action_kind == 'TRANSFER' ? 'transfer' : row.args?.method_name),
+    method_name: String(row.action_kind === 'TRANSFER' ? 'transfer' : row.args?.method_name),
     block_timestamp: row.block_timestamp,
     from_account: row.receipt_predecessor_account_id,
     block_height: row.block_height,
     args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(row.args)),
     transaction_hash: row.transaction_hash,
     // NEAR tokens
-    amount_transferred: near_amount,
+    amount_transferred: nearAmount,
     // Fugible Token
     ft_amount_out: '',
     ft_currency_out: '',
-    ft_amount_in: in_amount,
-    ft_currency_in: in_currency,
+    ft_amount_in: inAmount,
+    ft_currency_in: inCurrency,
     to_account: toAccount,
-    amount_staked: getNearAmountConsideringStaking(row, near_amount),
+    amount_staked: getNearAmountConsideringStaking(row, nearAmount),
   };
 
   return csvRow;
-  /* eslint-enable */
 }
