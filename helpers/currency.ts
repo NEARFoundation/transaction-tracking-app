@@ -26,9 +26,9 @@ export async function getCurrencyByContractFromNear(fungibleTokenContractAccount
 type QueryParameters = {
   // Could this type be imported from near-api-js instead of defined here?
   account_id: string;
-  args_base64: string;
+  args_base64?: string;
   block_id: number;
-  method_name: string;
+  method_name?: string;
   request_type: string;
 };
 
@@ -54,7 +54,7 @@ const seenBalances = new Map();
 
 // Function is required. We will use it the future to get onchain balances
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function getBalances(accountId: AccountId, blockId: number): Promise<{ dai: FungibleTokenBalance; usdc: FungibleTokenBalance }> {
+async function getBalances(accountId: AccountId, blockId: number): Promise<{ dai: FungibleTokenBalance; near: FungibleTokenBalance; usdc: FungibleTokenBalance }> {
   const key = JSON.stringify({ accId: accountId, b_id: blockId });
 
   if (seenBalances.has(key)) {
@@ -66,7 +66,25 @@ async function getBalances(accountId: AccountId, blockId: number): Promise<{ dai
 
   // DAI
   const dai = await getFungibleTokenBalance('6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near', accountId, Number(blockId));
-  seenBalances.set(key, { dai, usdc });
 
-  return { dai, usdc };
+  // NEAR
+  const near = await getNEARBalance(accountId, Number(blockId));
+
+  seenBalances.set(key, { dai, near, usdc });
+
+  return { dai, near, usdc };
+}
+
+export async function getNEARBalance(accountId: AccountId, blockId: number): Promise<FungibleTokenBalance> {
+  const provider = new nearAPI.providers.JsonRpcProvider({ url: 'https://archival-rpc.mainnet.near.org' });
+
+  const queryParameters: QueryParameters = {
+    account_id: accountId,
+    block_id: Number(blockId),
+    request_type: 'view_account',
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawResult: any = await provider.query(queryParameters);
+
+  return { balance: rawResult?.amount, decimals: 24, name: 'NEAR', symbol: 'NEAR' };
 }
