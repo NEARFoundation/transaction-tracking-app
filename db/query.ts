@@ -9,7 +9,7 @@ import jsonToCsv from '../helpers/jsonToCsv';
 import { getLockup } from '../helpers/lockup';
 
 import { type CsvRow } from './Row';
-import { handleFtIncoming, handleIncoming, handleOutgoing } from './transformations';
+import { handleFtIncoming, handleIncomingTransaction, handleOutgoingTransaction } from './transformations';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
@@ -50,11 +50,11 @@ export default async function query(startDate: string, endDate: string, accountI
     ]);
 
     for (const row of outgoingTransactions.rows) {
-      rowPromises.push(handleOutgoing(accountId, row));
+      rowPromises.push(handleOutgoingTransaction(accountId, row));
     }
 
     for (const row of incomingTransactions.rows) {
-      rowPromises.push(handleIncoming(accountId, row));
+      rowPromises.push(handleIncomingTransaction(accountId, row));
     }
 
     for (const row of ftIncomingTransactions.rows) {
