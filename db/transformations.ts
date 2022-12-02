@@ -8,32 +8,11 @@ import { type AccountId, getCurrencyByContractFromNear } from '../helpers/curren
 import { formatDateFromNano } from '../helpers/datetime';
 import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, divideByPowerOfTen, YOCTO_CONVERSION_CONSTANT } from '../helpers/math';
 
-import { type CsvRow, type IndexerRow } from './Row';
+import { getFinalCsvRow, type CsvRow, type IndexerRow } from './Row';
 
 const SYSTEM_ACCOUNT_ID = 'system';
 const BULKSENDER_ACCOUNT_ID = 'bulksender.near';
 const MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT = 0.5;
-
-function getFinalCsvRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
-  return {
-    date: formatDateFromNano(indexerRow.block_timestamp),
-    account_id: accountId,
-    method_name: String(indexerRow.action_kind === 'TRANSFER' ? 'transfer' : indexerRow.args?.method_name),
-    block_timestamp: indexerRow.block_timestamp,
-    from_account: indexerRow.receipt_predecessor_account_id,
-    block_height: indexerRow.block_height,
-    args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(indexerRow.args)),
-    transaction_hash: indexerRow.transaction_hash,
-    amount_transferred: nearAmount,
-    // Fungible Token
-    ft_amount_out: ftAmountOut,
-    ft_currency_out: ftCurrencyOut,
-    ft_amount_in: ftAmountIn,
-    ft_currency_in: ftCurrencyIn,
-    to_account: indexerRow.receipt_receiver_account_id,
-    amount_staked: getNearAmountConsideringStaking(indexerRow, nearAmount),
-  };
-}
 
 /**
  * Handles the transactions that are incoming to the account
