@@ -2,7 +2,7 @@ import { Pool, QueryResult } from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
 import jsonToCsv from './export';
-import { ALL_OUTGOING, ALL_INCOMING } from './queries/all';
+import { ALL_OUTGOING, ALL_INCOMING, FT_INCOMING } from './queries/all';
 import Row from './row';
 import { AccountId, FTBalance, getCurrencyByContractFromNear, getFTBalance } from '../helpers/currency';
 import { getLockup } from '../helpers/lockup';
@@ -21,7 +21,8 @@ export default async function query_all(startDate: string, endDate: string, acco
 
     const all_outgoing_txs_promise = pool.query(ALL_OUTGOING, [[accountId, lockupAccountId], startDate, endDate]);
     const all_incoming_txs_promise = pool.query(ALL_INCOMING, [[accountId, lockupAccountId], startDate, endDate]);
-    const [all_outgoing_txs, all_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise]);
+    const ft_incoming_txs_promise = pool.query(FT_INCOMING, [[accountId, lockupAccountId], startDate, endDate]);
+    const [all_outgoing_txs, all_incoming_txs, ft_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise, ft_incoming_txs_promise]);
 
     // TODO(pierre): consider using async to parallelize this
     for (const row of all_outgoing_txs.rows) {
@@ -30,6 +31,10 @@ export default async function query_all(startDate: string, endDate: string, acco
 
     for (const row of all_incoming_txs.rows) {
       rows_promises.push(handleIncoming(accountId, row));
+    }
+
+    for (const row of ft_incoming_txs.rows) {
+      rows_promises.push(handleFtIncoming(accountId, row));
     }
   }
 
@@ -178,6 +183,55 @@ async function handleIncoming(accountId: AccountId, row: any): Promise<Row> {
 
   return r;
 }
+
+async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
+  let to = row.receiver_account_id;
+  let near_amount = row.args?.deposit ? row.args.deposit / 10 ** 24 : 0;
+  near_amount = Math.abs(near_amount) >= 0.000001 ? near_amount : 0;
+  // Gas refund are already accounted in other transactions.
+  if (row.receipt_predecessor_account_id == 'system') {
+    near_amount = Math.abs(near_amount) >= 0.5 ? near_amount : 0;
+  }
+
+  // Skipping NEAR Amount when it is not going to NF associated account ids 
+  if (to != accountId || to != getLockup('near', accountId)) {
+    near_amount = 0;
+  }
+
+  let in_amount = '';
+  let in_currency = '';
+  if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+    const { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+    in_currency = symbol;
+
+    let raw_amount = row.args?.args_json?.amount;
+    in_amount = String(raw_amount / 10 ** decimals);
+  }
+
+  // Removed because it takes too much time.
+  // const ft_balances = await getBalances(accountId, row.block_height);
+  let r = <Row>{
+    date: formatDate(new Date(row.block_timestamp / 1000000)),
+    account_id: accountId,
+    method_name: row.action_kind == 'TRANSFER' ? 'transfer' : row.args.method_name,
+    block_timestamp: row.block_timestamp,
+    from_account: row.receipt_predecessor_account_id,
+    block_height: row.block_height,
+    args: JSON.stringify(getCommandsArgs(row.args)),
+    transaction_hash: row.transaction_hash,
+    // NEAR tokens
+    amount_transferred: near_amount,
+    currency_transferred: 'NEAR',
+    // Fugible Token
+    ft_amount_in: in_amount,
+    ft_currency_in: in_currency,
+    to_account: to,
+    amount_staked: handle_staking(row, near_amount),
+  };
+
+  return r;
+}
+
 
 function sortByBlockTimestamp(rows: Row[]): Row[] {
   return rows.sort(function (a, b) {
