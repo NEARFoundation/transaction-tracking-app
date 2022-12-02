@@ -1,21 +1,20 @@
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable eslint-comments/no-unlimited-disable */
-
+/* eslint no-use-before-define: "error"*/
 /* eslint-disable canonical/sort-keys */
 
 import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
 import { formatDateFromNano } from '../helpers/datetime';
+import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, divideByPowerOfTen, YOCTO_CONVERSION_CONSTANT } from '../helpers/math';
 
 import { type CsvRow, type IndexerRow } from './Row';
 
 const SYSTEM_ACCOUNT_ID = 'system';
 const BULKSENDER_ACCOUNT_ID = 'bulksender.near';
-const MINIMUM_AMOUNT = 0.000_001;
 const MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT = 0.5;
-const YOCTO_CONVERSION_CONSTANT = 10 ** 24;
 
-function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
+function getFinalCsvRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number, ftAmountIn: string, ftCurrencyIn: string, ftAmountOut = '', ftCurrencyOut = ''): CsvRow {
   return {
     date: formatDateFromNano(indexerRow.block_timestamp),
     account_id: accountId,
@@ -36,22 +35,10 @@ function getRow(indexerRow: IndexerRow, accountId: AccountId, nearAmount: number
   };
 }
 
-// Fungible tokens are given in their smallest undividable amount of native currency (yoctoNEAR for NEAR)
-// This function converts the amount to the correct amount of the currency
-function convertToCurrency(rawAmount: number, decimals: number): string {
-  return String(rawAmount / 10 ** decimals);
-}
-
-function convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow: IndexerRow): number {
-  let nearAmount = indexerRow.args?.deposit ? indexerRow.args.deposit / YOCTO_CONVERSION_CONSTANT : 0; // converting from yoctonear to near
-  // The SQL query gets all transactions, including those that are gas refund.
-  // Gas refunds are already included in the total amount of NEAR transferred, so we filter them out here.
-  nearAmount = Math.abs(nearAmount) >= MINIMUM_AMOUNT ? nearAmount : 0;
-  return nearAmount;
-}
-
-// Handles the transactions that are incoming to the account
-export async function handleIncomingTransaction(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
+/**
+ * Handles the transactions that are incoming to the account
+ */
+export async function convertIncomingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
   let nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
   // Gas refund are already accounted in other transactions.
   if (indexerRow.receipt_predecessor_account_id === SYSTEM_ACCOUNT_ID) {
@@ -65,16 +52,31 @@ export async function handleIncomingTransaction(accountId: AccountId, indexerRow
     inCurrency = symbol;
 
     const rawAmount = indexerRow.args?.args_json?.amount;
-    inAmount = convertToCurrency(rawAmount, decimals);
+    inAmount = divideByPowerOfTen(rawAmount, decimals);
   }
 
-  const result: CsvRow = getRow(indexerRow, accountId, nearAmount, inAmount, inCurrency);
+  const result: CsvRow = getFinalCsvRow(indexerRow, accountId, nearAmount, inAmount, inCurrency);
 
   return result;
 }
 
+async function handleFtOutgoing(indexerRow: IndexerRow): Promise<{ ftAmountOut: string; ftCurrencyOut: string }> {
+  let ftAmountOut = '';
+  let ftCurrencyOut = '';
+
+  if (indexerRow.args?.args_json?.amount && indexerRow.receipt_receiver_account_id) {
+    const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
+    const rawAmount = indexerRow.args?.args_json?.amount;
+
+    ftCurrencyOut = symbol;
+    ftAmountOut = divideByPowerOfTen(-1 * rawAmount, decimals);
+  }
+
+  return { ftAmountOut, ftCurrencyOut };
+}
+
 // eslint-disable-next-line max-lines-per-function
-export async function handleOutgoingTransaction(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
+export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
   const nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
 
   let ftAmountIn = '';
@@ -86,17 +88,15 @@ export async function handleOutgoingTransaction(accountId: AccountId, indexerRow
   if (indexerRow.args?.method_name === 'ft_transfer') {
     ({ ftAmountOut, ftCurrencyOut } = await handleFtOutgoing(indexerRow));
   } else if (indexerRow.args?.method_name === 'swap') {
-    const tokenIn = await getCurrencyByContractFromNear(indexerRow.args?.args_json.actions[0].token_in);
-
+    const tokenIn = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_in);
     const rawAmountOut = indexerRow.args?.args_json?.actions[0].min_amount_out;
     ftCurrencyOut = tokenIn.symbol;
-    ftAmountOut = convertToCurrency(-1 * rawAmountOut, tokenIn.decimals);
-
-    const tokenOut = await getCurrencyByContractFromNear(indexerRow.args?.args_json.actions[0].token_out);
+    ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, tokenIn.decimals);
+    const tokenOut = await getCurrencyByContractFromNear(indexerRow.args?.args_json?.actions[0].token_out);
 
     const rawAmountIn = indexerRow.args?.args_json?.actions[0].amount_in;
     ftCurrencyIn = tokenOut.symbol;
-    ftAmountIn = convertToCurrency(rawAmountIn, tokenOut.decimals);
+    ftAmountIn = divideByPowerOfTen(rawAmountIn, tokenOut.decimals);
   } else if (indexerRow.args?.method_name === 'ft_transfer_call') {
     // Gets arguments for function, converts from base64 if necessary
     const argsJson = getArgsAsObjectUsingBase64Fallback(indexerRow.args);
@@ -105,26 +105,26 @@ export async function handleOutgoingTransaction(accountId: AccountId, indexerRow
       const rawAmountOut = argsJson.amount;
       const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
       ftCurrencyOut = symbol;
-      ftAmountOut = convertToCurrency(-1 * rawAmountOut, decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, decimals);
     } else if (argsJson.msg?.includes('force')) {
       const message = JSON.parse(argsJson.msg?.replaceAll('\\', ''));
       const rawAmountOut = argsJson.amount;
       const tokenIn = await getCurrencyByContractFromNear(message.actions[0].token_in);
       ftCurrencyOut = tokenIn.symbol;
-      ftAmountOut = convertToCurrency(-1 * rawAmountOut, tokenIn.decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmountOut, tokenIn.decimals);
       const tokenOut = await getCurrencyByContractFromNear(message.actions[0].token_out);
       const rawAmountIn = message.actions[0].min_amount_out;
       ftCurrencyIn = tokenOut.symbol;
-      ftAmountIn = convertToCurrency(rawAmountIn, tokenOut.decimals);
+      ftAmountIn = divideByPowerOfTen(rawAmountIn, tokenOut.decimals);
     } else {
       const rawAmount = argsJson.amount;
       const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
       ftCurrencyOut = symbol;
-      ftAmountOut = convertToCurrency(-1 * rawAmount, decimals);
+      ftAmountOut = divideByPowerOfTen(-1 * rawAmount, decimals);
     }
   }
 
-  const result: CsvRow = getRow(indexerRow, accountId, nearAmount, ftAmountIn, ftCurrencyIn, ftAmountOut, ftCurrencyOut);
+  const result: CsvRow = getFinalCsvRow(indexerRow, accountId, nearAmount, ftAmountIn, ftCurrencyIn, ftAmountOut, ftCurrencyOut);
 
   return result;
 }
@@ -134,7 +134,7 @@ export async function handleOutgoingTransaction(accountId: AccountId, indexerRow
  */
 
 // eslint-disable-next-line max-lines-per-function
-export async function handleFtIncoming(accountId: AccountId, row: IndexerRow): Promise<CsvRow> {
+export async function convertIncomingFungibleTokenTransactionsFromIndexerToCsvRow(accountId: AccountId, row: IndexerRow): Promise<CsvRow> {
   const toAccount = row.receiver_account_id;
   let nearAmount = row.args?.deposit ? row.args.deposit / YOCTO_CONVERSION_CONSTANT : 0;
   nearAmount = Math.abs(nearAmount) >= 0.000_001 ? nearAmount : 0;
@@ -157,6 +157,7 @@ export async function handleFtIncoming(accountId: AccountId, row: IndexerRow): P
   // const ft_balances = await getBalances(accountId, row.block_height);
 
   const csvRow: CsvRow = {
+    // TODO: Reduce duplication with `getFinalCsvRow`.
     date: formatDateFromNano(row.block_timestamp),
     account_id: accountId,
     method_name: String(row.action_kind === 'TRANSFER' ? 'transfer' : row.args?.method_name),
@@ -177,19 +178,4 @@ export async function handleFtIncoming(accountId: AccountId, row: IndexerRow): P
   };
 
   return csvRow;
-}
-
-async function handleFtOutgoing(indexerRow: IndexerRow): Promise<{ ftAmountOut: string; ftCurrencyOut: string }> {
-  let ftAmountOut = '';
-  let ftCurrencyOut = '';
-
-  if (indexerRow.args?.args_json?.amount && indexerRow.receipt_receiver_account_id) {
-    const { symbol, decimals } = await getCurrencyByContractFromNear(indexerRow.receipt_receiver_account_id);
-    const rawAmount = indexerRow.args?.args_json?.amount;
-
-    ftCurrencyOut = symbol;
-    ftAmountOut = convertToCurrency(-1 * rawAmount, decimals);
-  }
-
-  return { ftAmountOut, ftCurrencyOut };
 }

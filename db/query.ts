@@ -9,7 +9,11 @@ import jsonToCsv from '../helpers/jsonToCsv';
 import { getLockup } from '../helpers/lockup';
 
 import { type CsvRow } from './Row';
-import { handleFtIncoming, handleIncomingTransaction, handleOutgoingTransaction } from './transformations';
+import {
+  convertIncomingFungibleTokenTransactionsFromIndexerToCsvRow,
+  convertIncomingTransactionsFromIndexerToCsvRow,
+  convertOutgoingTransactionsFromIndexerToCsvRow,
+} from './transformations';
 
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
@@ -49,16 +53,16 @@ export default async function query(startDate: string, endDate: string, accountI
       ftIncomingTransactionsPromise,
     ]);
 
-    for (const row of outgoingTransactions.rows) {
-      rowPromises.push(handleOutgoingTransaction(accountId, row));
+    for (const indexerRow of outgoingTransactions.rows) {
+      rowPromises.push(convertOutgoingTransactionsFromIndexerToCsvRow(accountId, indexerRow));
     }
 
-    for (const row of incomingTransactions.rows) {
-      rowPromises.push(handleIncomingTransaction(accountId, row));
+    for (const indexerRow of incomingTransactions.rows) {
+      rowPromises.push(convertIncomingTransactionsFromIndexerToCsvRow(accountId, indexerRow));
     }
 
-    for (const row of ftIncomingTransactions.rows) {
-      rowPromises.push(handleFtIncoming(accountId, row));
+    for (const indexerRow of ftIncomingTransactions.rows) {
+      rowPromises.push(convertIncomingFungibleTokenTransactionsFromIndexerToCsvRow(accountId, indexerRow));
     }
   }
 
