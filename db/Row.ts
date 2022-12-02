@@ -31,7 +31,7 @@ export type Args = {
   deposit: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args_base64: any; // TODO: Improve the type.
-  args_json: ArgsJson;
+  args_json?: ArgsJson;
 };
 
 export type IndexerRow = {
