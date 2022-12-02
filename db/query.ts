@@ -39,7 +39,7 @@ export default async function query(startDate: string, endDate: string, accountI
   const pool = new Pool({ connectionString: CONNECTION_STRING, statement_timeout: SQL_STATEMENT_TIMEOUT });
   const rowPromises = [];
 
-  console.log('query', startDate, endDate, accountIds);
+  // console.log('query', startDate, endDate, accountIds);
 
   for (const accountId of Array.from(accountIds)) {
     const lockupAccountId = getLockup(LOCKUP_MASTER_ACCOUNT_ID, accountId);

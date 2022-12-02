@@ -14,6 +14,7 @@ module.exports = {
     // https://eslint.org/docs/rules/max-lines-per-function
     'max-lines-per-function': ['error', { max: 30, skipBlankLines: true, skipComments: true }],
 
-    'no-console': 'off',
+    // https://eslint.org/docs/latest/rules/no-console
+    'no-console': ['error', { allow: ['warn', 'error'] }],
   },
 };
