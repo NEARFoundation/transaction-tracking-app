@@ -11,17 +11,18 @@ describe('Row', () => {
     const ftAmountIn = '10000000000';
     const ftCurrencyIn = 'USDC';
     const args = {
-      method_name: 'ft_transfer',
-      deposit: 1,
       args_base64: 'eyJhbW91bnQiOiIxMDAwMDAwMDAwMCIsInJlY2VpdmVyX2lkIjoiZGV2M2lzLm5lYXIifQ==',
       args_json: undefined,
+      deposit: 1,
+      method_name: 'ft_transfer',
     };
     const indexerRow = {
       account_id: accountId,
       action_kind: 'FUNCTION_CALL',
       args,
       block_height: 1,
-      block_timestamp: 1659973934799291015,
+      // eslint-disable-next-line @typescript-eslint/no-loss-of-precision
+      block_timestamp: 1_659_973_934_799_291_015, // TODO Fix this in TTA-63
       receipt_predecessor_account_id: 'nf-payments2.near',
       receipt_receiver_account_id: accountId,
       receiver_account_id: accountId,
