@@ -32,6 +32,7 @@ type QueryParameters = {
   request_type: string;
 };
 
+// eslint-disable-next-line max-len
 export async function getFungibleTokenBalance(fungibleTokenContractAccountId: AccountId, accountId: AccountId, blockId: number): Promise<FungibleTokenBalance> {
   const jsonRpcProvider = getJsonRpcProvider(NEAR_NODE_URL);
 

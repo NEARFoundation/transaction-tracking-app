@@ -19,7 +19,7 @@ function getCleanedAccountIds(accountIds: string): Set<string> {
 export default async function handler(request: NextApiRequest, response: NextApiResponse<string>) {
   const { startDate, endDate, accountIds } = request.body;
 
-  console.log({ accountIds, endDate, startDate });
+  // console.log({ accountIds, endDate, startDate });
   const rowsCsv = await query(startDate as string, endDate as string, getCleanedAccountIds(accountIds as string));
 
   // https://medium.com/@aitchkhan/downloading-csv-files-from-express-server-7a3beb3ae52c

@@ -27,13 +27,13 @@ export default function Home() {
 
   function onChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const accountIdsArray = event.target.value.split('\n').map((accountId) => accountId.trim());
-    console.log('onChange', { accountIdsArray });
+    // console.log('onChange', { accountIdsArray });
     setAccountIds(accountIdsArray);
   }
 
   function onSubmit() {
     const accountIdsSet = new Set(accountIds); // Removing duplicates.
-    console.log('onSubmit', { accountIdsSet });
+    // console.log('onSubmit', { accountIdsSet });
     /* The app doesn't save the accountIds to localStorage until form submission because of Principle
     of Least Surprise: https://en.wikipedia.org/wiki/Principle_of_least_astonishment. */
     setAccountIdsLocalStorage(Array.from(accountIdsSet));
