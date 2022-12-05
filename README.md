@@ -1,6 +1,6 @@
-# NEAR Transaction Tracker App (also known as "Transactions Accounting Report")
+# NEAR Transaction Tracking App
 
-Transaction Tracker App (TTA) produces a report that helps teams across the ecosystem to see a simplified view of all transactions over a certain period (e.g. the Finance/Legal/Operations team uses it to reconcile their transactions and stay compliant).
+Transaction Tracking App (TTA) produces a report that helps teams across the ecosystem to see a simplified view of all transactions over a certain period (e.g. the Finance/Legal/Operations team uses it to reconcile their transactions and stay compliant).
 
 # Framework
 
@@ -8,7 +8,9 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 # Deployments
 
-It automatically deploys each commit of the `main` branch to https://tta-basic.onrender.com/
+It automatically deploys each commit of the `main` branch to https://tta-basic.onrender.com (which is the production location). 
+
+The production URL soon will be https://transactions.nearfoundation.engineering via CNAME.
 
 See https://dashboard.render.com/
 
