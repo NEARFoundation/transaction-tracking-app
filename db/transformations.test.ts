@@ -1,6 +1,7 @@
 // Run via `yarn test db/Row.test.ts`
 
-import { CsvRow } from '..';
+import { type CsvRow } from '..';
+
 import { getFinalCsvRow } from './transformations';
 
 // eslint-disable-next-line max-lines-per-function
@@ -32,7 +33,7 @@ describe('Row', () => {
     };
     const expectedResult: CsvRow = {
       /* eslint-disable canonical/sort-keys */
-      date: '2022-08-08',
+      datetime_utc: '2022-08-08 15:52:14',
       account_id: accountId,
       method_name: 'ft_transfer',
       block_timestamp: indexerRow.block_timestamp,

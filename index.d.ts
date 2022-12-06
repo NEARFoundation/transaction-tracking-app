@@ -2,7 +2,7 @@
 // Disabling the automatic key sorting since the order of the CSV columns is important.
 export type CsvRow = {
   account_id: string;
-  date: string;
+  datetime_utc: string;
   block_timestamp: number;
   block_height: number;
   transaction_hash: string;

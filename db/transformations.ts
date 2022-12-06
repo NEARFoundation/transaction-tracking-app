@@ -57,7 +57,7 @@ export function getFinalCsvRow(
 ): CsvRow {
   return {
     // Disabling the automatic key sorting since the order of the CSV columns is important.
-    date: formatDateFromNano(indexerRow.block_timestamp),
+    datetime_utc: formatDateFromNano(indexerRow.block_timestamp),
     account_id: accountId,
     method_name: String(indexerRow.action_kind === 'TRANSFER' ? 'transfer' : indexerRow.args?.method_name),
     block_timestamp: indexerRow.block_timestamp,
@@ -198,7 +198,7 @@ export async function convertIncomingFungibleTokenTransactionsFromIndexerToCsvRo
 
   const csvRow: CsvRow = {
     // TODO: Reduce duplication with `getFinalCsvRow`.
-    date: formatDateFromNano(row.block_timestamp),
+    datetime_utc: formatDateFromNano(row.block_timestamp),
     account_id: accountId,
     method_name: String(row.action_kind === 'TRANSFER' ? 'transfer' : row.args?.method_name),
     block_timestamp: row.block_timestamp,
