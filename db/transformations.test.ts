@@ -2,7 +2,7 @@
 
 import { type CsvRow } from '..';
 
-import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, getFinalCsvRow, MINIMUM_AMOUNT, YOCTO_CONVERSION_CONSTANT } from './transformations';
+import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, getFinalCsvRow } from './transformations';
 
 // eslint-disable-next-line max-lines-per-function
 describe('transformations', () => {
@@ -15,7 +15,7 @@ describe('transformations', () => {
     const args = {
       args_base64: 'eyJhbW91bnQiOiIxMDAwMDAwMDAwMCIsInJlY2VpdmVyX2lkIjoiZGV2M2lzLm5lYXIifQ==',
       args_json: '{"amount":"10000000000","receiver_id":"dev3is.near"}',
-      deposit: 1,
+      deposit: '1',
       gas: 1,
       method_name: 'ft_transfer',
     };
@@ -55,8 +55,7 @@ describe('transformations', () => {
   });
 
   test('convertYoctoToNearAndConsiderSmallAmountsToBeZero', () => {
-    expect(convertYoctoToNearAndConsiderSmallAmountsToBeZero(531_900_000_000_000_000_000_000_000)).toEqual(531.9);
-    const belowMinimum = MINIMUM_AMOUNT * YOCTO_CONVERSION_CONSTANT - 250; // cannot do just "- 1" because of floating point precision
-    expect(convertYoctoToNearAndConsiderSmallAmountsToBeZero(belowMinimum)).toEqual(0);
+    expect(convertYoctoToNearAndConsiderSmallAmountsToBeZero('531900000000000000000000000')).toEqual(531.9);
+    expect(convertYoctoToNearAndConsiderSmallAmountsToBeZero('999999999999999700')).toEqual(0);
   });
 });

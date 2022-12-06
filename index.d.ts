@@ -26,8 +26,7 @@ export type ActionReceiptActionArgs = {
   decode the args specified in the FunctionCall request via JSON (NEAR Protocol does not 
     require it to be JSON, but most of the contracts actually use JSON for their function 
     arguments).*/;
-  // Warning! By treating NEAR amounts as a number instead of a string, there can be precision loss!
-  deposit: number; // unsigned 128-bit integer
+  deposit: string; // unsigned 128-bit integer
   // In the future, we may want to import the `Gas` type from near-api-js instead.
   gas: number; // unsigned 64-bit integer, but given that the limit is 1000 TeraGas, the values are <= 10^12
   method_name: string;

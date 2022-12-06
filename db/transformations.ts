@@ -2,19 +2,20 @@
 /* eslint-disable eslint-comments/no-unlimited-disable */
 /* eslint no-use-before-define: "error"*/
 /* eslint-disable canonical/sort-keys */
+import * as nearAPI from 'near-api-js';
 
 import { type CsvRow, type IndexerRow } from '..'; // https://docs.near.org/tools/near-api-js/quick-reference#yoctonear--near
 import { formatDateFromNano } from '../external/datetime';
 import { divideByPowerOfTen } from '../external/fungibleTokenTools';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
 
+const { utils } = nearAPI;
 const SYSTEM_ACCOUNT_ID = 'system';
 const BULKSENDER_ACCOUNT_ID = 'bulksender.near';
 const MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT = 0.5;
 /* This number is a fudge factor that was determined by trial and error to make transaction reconciliation work easier. 
 We need to figure out why this is necessary and document this better. */
-export const MINIMUM_AMOUNT = 0.000_001;
-export const YOCTO_CONVERSION_CONSTANT = 10 ** 24;
+const MINIMUM_AMOUNT = 0.000_001;
 
 const STAKING_ACCOUNT_SUFFIX = '.poolv1.near';
 
@@ -37,10 +38,10 @@ export function getNearAmountConsideringStaking(row: IndexerRow, nearAmount: num
  * Gas refunds are already included in the total amount of NEAR transferred, so we filter them out here.
  * Warning: this function contains a conversion of a NEAR amount from string to `number`, which can cause precision loss!
  */
-export function convertYoctoToNearAndConsiderSmallAmountsToBeZero(deposit: number): number {
-  let nearAmount = deposit / YOCTO_CONVERSION_CONSTANT; // converting from yoctonear to near
-  nearAmount = Math.abs(nearAmount) >= MINIMUM_AMOUNT ? nearAmount : 0;
-  return nearAmount;
+export function convertYoctoToNearAndConsiderSmallAmountsToBeZero(deposit: string): number {
+  const depositInNear = utils.format.formatNearAmount(deposit); // converting from yoctonear to near
+  const depositInNearAsNumber = Number(depositInNear); // Warning: precision loss!
+  return Math.abs(depositInNearAsNumber) >= MINIMUM_AMOUNT ? depositInNearAsNumber : 0;
 }
 
 export function getFinalCsvRow(
