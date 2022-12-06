@@ -11,7 +11,7 @@ describe('converters', () => {
 
   test('getArgsAsObjectUsingBase64Fallback json', () => {
     const json = { actions: [], amount: 0 };
-    const args: Args = { args_base64: undefined, args_json: json, deposit: 0, method_name: 'deposit' };
+    const args: Args = { args_base64: '', args_json: json, deposit: 0, method_name: 'deposit' };
     expect(getArgsAsObjectUsingBase64Fallback(args)).toEqual(json);
   });
 
