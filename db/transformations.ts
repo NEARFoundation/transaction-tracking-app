@@ -2,23 +2,83 @@
 /* eslint-disable eslint-comments/no-unlimited-disable */
 /* eslint no-use-before-define: "error"*/
 /* eslint-disable canonical/sort-keys */
+import * as nearAPI from 'near-api-js';
 
-import { getArgsAsObjectUsingBase64Fallback, getNearAmountConsideringStaking } from '../helpers/converters';
+import { type CsvRow, type IndexerRow } from '..'; // https://docs.near.org/tools/near-api-js/quick-reference#yoctonear--near
+import { formatDateFromNano } from '../external/datetime';
+import { divideByPowerOfTen } from '../external/fungibleTokenTools';
 import { type AccountId, getCurrencyByContractFromNear } from '../helpers/currency';
-import { formatDateFromNano } from '../helpers/datetime';
-import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, divideByPowerOfTen, YOCTO_CONVERSION_CONSTANT } from '../helpers/math';
 
-import { getFinalCsvRow, type CsvRow, type IndexerRow } from './Row';
-
+const { utils } = nearAPI;
 const SYSTEM_ACCOUNT_ID = 'system';
 const BULKSENDER_ACCOUNT_ID = 'bulksender.near';
 const MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT = 0.5;
+/* This number is a fudge factor that was determined by trial and error to make transaction reconciliation work easier. 
+We need to figure out why this is necessary and document this better. */
+const MINIMUM_AMOUNT = 0.000_001;
+
+const STAKING_ACCOUNT_SUFFIX = '.poolv1.near';
+
+export function getNearAmountConsideringStaking(row: IndexerRow, nearAmount: number): number {
+  let adjustedNearAmount = 0;
+  // It's a transfer out of the account but for staking.
+  if (row.receipt_receiver_account_id.endsWith(STAKING_ACCOUNT_SUFFIX) && (row.args?.method_name === 'deposit' || row.args?.method_name === 'deposit_and_stake')) {
+    adjustedNearAmount = -1 * nearAmount;
+  }
+
+  if (row.receipt_predecessor_account_id.endsWith(STAKING_ACCOUNT_SUFFIX)) {
+    adjustedNearAmount = -1 * nearAmount;
+  }
+
+  return adjustedNearAmount;
+}
+
+/**
+ * The SQL query gets all transactions, including those that are gas refunds.
+ * Gas refunds are already included in the total amount of NEAR transferred, so we filter them out here.
+ * Warning: this function contains a conversion of a NEAR amount from string to `number`, which can cause precision loss!
+ */
+export function convertYoctoToNearAndConsiderSmallAmountsToBeZero(deposit: string): number {
+  const depositInNear = utils.format.formatNearAmount(deposit); // converting from yoctonear to near
+  const depositInNearAsNumber = Number(depositInNear); // Warning: precision loss!
+  return Math.abs(depositInNearAsNumber) >= MINIMUM_AMOUNT ? depositInNearAsNumber : 0;
+}
+
+export function getFinalCsvRow(
+  indexerRow: IndexerRow,
+  accountId: AccountId,
+  nearAmount: number,
+  ftAmountIn: string,
+  ftCurrencyIn: string,
+  ftAmountOut = '',
+  ftCurrencyOut = '',
+): CsvRow {
+  return {
+    // Disabling the automatic key sorting since the order of the CSV columns is important.
+    datetime_utc: formatDateFromNano(indexerRow.block_timestamp),
+    account_id: accountId,
+    method_name: String(indexerRow.action_kind === 'TRANSFER' ? 'transfer' : indexerRow.args?.method_name),
+    block_timestamp: indexerRow.block_timestamp,
+    from_account: indexerRow.receipt_predecessor_account_id,
+    block_height: indexerRow.block_height,
+    args_json: JSON.stringify(indexerRow.args.args_json) ?? '',
+    transaction_hash: indexerRow.transaction_hash,
+    amount_transferred: nearAmount,
+    // Fungible Token
+    ft_amount_out: ftAmountOut,
+    ft_currency_out: ftCurrencyOut,
+    ft_amount_in: ftAmountIn,
+    ft_currency_in: ftCurrencyIn,
+    to_account: indexerRow.receipt_receiver_account_id,
+    amount_staked: getNearAmountConsideringStaking(indexerRow, nearAmount),
+  };
+}
 
 /**
  * Handles the transactions that are incoming to the account
  */
 export async function convertIncomingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
-  let nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
+  let nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow.args.deposit);
   // Gas refund are already accounted in other transactions.
   if (indexerRow.receipt_predecessor_account_id === SYSTEM_ACCOUNT_ID) {
     nearAmount = Math.abs(nearAmount) >= MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT ? nearAmount : 0;
@@ -56,7 +116,7 @@ async function getOutgoingFungibleTokenDetailsFromIndexerRow(indexerRow: Indexer
 
 // eslint-disable-next-line max-lines-per-function
 export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
-  const nearAmount = -1 * convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
+  const nearAmount = -1 * convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow.args.deposit);
 
   let ftAmountIn = '';
   let ftCurrencyIn = '';
@@ -78,7 +138,7 @@ export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: 
     ftAmountIn = divideByPowerOfTen(rawAmountIn, tokenOut.decimals);
   } else if (indexerRow.args?.method_name === 'ft_transfer_call') {
     // Gets arguments for function, converts from base64 if necessary
-    const argsJson = getArgsAsObjectUsingBase64Fallback(indexerRow.args);
+    const argsJson = indexerRow.args?.args_json;
 
     if (argsJson.receiver_id?.includes(BULKSENDER_ACCOUNT_ID)) {
       const rawAmountOut = argsJson.amount;
@@ -115,8 +175,7 @@ export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: 
 // eslint-disable-next-line max-lines-per-function
 export async function convertIncomingFungibleTokenTransactionsFromIndexerToCsvRow(accountId: AccountId, row: IndexerRow): Promise<CsvRow> {
   const toAccount = row.receiver_account_id;
-  let nearAmount = row.args?.deposit ? row.args.deposit / YOCTO_CONVERSION_CONSTANT : 0;
-  nearAmount = Math.abs(nearAmount) >= 0.000_001 ? nearAmount : 0;
+  let nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(row.args.deposit);
   // Gas refund are already accounted in other transactions.
   if (row.receipt_predecessor_account_id === 'system') {
     nearAmount = Math.abs(nearAmount) >= MINIMUM_AMOUNT_FOR_SYSTEM_ACCOUNT ? nearAmount : 0;
@@ -137,13 +196,13 @@ export async function convertIncomingFungibleTokenTransactionsFromIndexerToCsvRo
 
   const csvRow: CsvRow = {
     // TODO: Reduce duplication with `getFinalCsvRow`.
-    date: formatDateFromNano(row.block_timestamp),
+    datetime_utc: formatDateFromNano(row.block_timestamp),
     account_id: accountId,
     method_name: String(row.action_kind === 'TRANSFER' ? 'transfer' : row.args?.method_name),
     block_timestamp: row.block_timestamp,
     from_account: row.receipt_predecessor_account_id,
     block_height: row.block_height,
-    args: JSON.stringify(getArgsAsObjectUsingBase64Fallback(row.args)),
+    args_json: JSON.stringify(row.args?.args_json),
     transaction_hash: row.transaction_hash,
     // NEAR tokens
     amount_transferred: nearAmount,

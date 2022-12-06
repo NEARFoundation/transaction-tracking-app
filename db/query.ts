@@ -5,10 +5,10 @@ import path from 'node:path';
 
 import { Pool } from 'pg';
 
+import { type CsvRow } from '..';
 import jsonToCsv from '../helpers/jsonToCsv';
 import { getLockup } from '../helpers/lockup';
 
-import { type CsvRow } from './Row';
 import {
   convertIncomingFungibleTokenTransactionsFromIndexerToCsvRow,
   convertIncomingTransactionsFromIndexerToCsvRow,

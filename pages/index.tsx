@@ -6,24 +6,21 @@ import { AccountId } from '../helpers/currency';
 import { useLocalStorage } from '../helpers/localStorage';
 import styles from '../styles/Home.module.css';
 
-const ACCOUNT_IDS = process.env.ACCOUNT_IDS;
-
 const defaultStartDate = new Date();
 defaultStartDate.setDate(defaultStartDate.getDate() - 30); // 30 days ago
 const defaultStartDateString = defaultStartDate.toISOString().slice(0, 10);
 const defaultEndDate = new Date();
 defaultEndDate.setDate(defaultEndDate.getDate() + 1); // tomorrow
 const defaultEndDateString = defaultEndDate.toISOString().slice(0, 10);
-const initialAccountIds: AccountId[] = ACCOUNT_IDS ? ACCOUNT_IDS.split(',') : [];
 
 // eslint-disable-next-line max-lines-per-function
 export default function Home() {
   /* `accountIds` is an array instead of a Set so that users can temporarily paste multiple lines of the same account ID and then edit them to be
    unique before submitting the form. If they were a Set, pasting an account ID more than once would result in confusing behavior of the form just
    showing the first paste. */
-  const [accountIds, setAccountIds] = useState<AccountId[]>(initialAccountIds);
+  const [accountIds, setAccountIds] = useState<AccountId[]>([]);
   // See comment in `onSubmit` about why not to use just `useLocalStorage`.
-  const [accountIdsLocalStorage, setAccountIdsLocalStorage] = useLocalStorage<AccountId[]>('accountIds', initialAccountIds); // useLocalStorage seemed unable to save Set<AccountId>.
+  const [accountIdsLocalStorage, setAccountIdsLocalStorage] = useLocalStorage<AccountId[]>('accountIds', []); // useLocalStorage seemed unable to save Set<AccountId>.
 
   function onChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const accountIdsArray = event.target.value.split('\n').map((accountId) => accountId.trim());
