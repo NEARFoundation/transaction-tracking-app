@@ -1,11 +1,11 @@
-// Run via `yarn test db/Row.test.ts`
+// Run via `yarn test db/transformations.test.ts`
 
 import { type CsvRow } from '..';
 
-import { getFinalCsvRow } from './transformations';
+import { convertYoctoToNearAndConsiderSmallAmountsToBeZero, getFinalCsvRow, MINIMUM_AMOUNT, YOCTO_CONVERSION_CONSTANT } from './transformations';
 
 // eslint-disable-next-line max-lines-per-function
-describe('Row', () => {
+describe('transformations', () => {
   // eslint-disable-next-line max-lines-per-function
   test('getFinalCsvRow', () => {
     const accountId = 'a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near';
@@ -52,5 +52,11 @@ describe('Row', () => {
       /* eslint-enable canonical/sort-keys */
     };
     expect(getFinalCsvRow(indexerRow, accountId, nearAmount, ftAmountIn, ftCurrencyIn)).toEqual(expectedResult);
+  });
+
+  test('convertYoctoToNearAndConsiderSmallAmountsToBeZero', () => {
+    expect(convertYoctoToNearAndConsiderSmallAmountsToBeZero(531_900_000_000_000_000_000_000_000)).toEqual(531.9);
+    const belowMinimum = MINIMUM_AMOUNT * YOCTO_CONVERSION_CONSTANT - 250; // cannot do just "- 1" because of floating point precision
+    expect(convertYoctoToNearAndConsiderSmallAmountsToBeZero(belowMinimum)).toEqual(0);
   });
 });
