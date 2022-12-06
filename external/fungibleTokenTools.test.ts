@@ -1,6 +1,6 @@
 // https://jestjs.io/docs/getting-started#via-ts-jest
 
-import { divideByPowerOfTen } from './math';
+import { divideByPowerOfTen } from './fungibleTokenTools';
 
 describe('math', () => {
   test('divideByPowerOfTen', () => {

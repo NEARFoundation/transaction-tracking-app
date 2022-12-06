@@ -11,7 +11,7 @@ dayjs.extend(timezone);
 /**
  *
  * @param {Date} date
- * @returns {string} like 2022-08-03 17:32:00 UTC
+ * @returns {string} like '2022-08-03'
  */
 export const getFormattedUtcDatetime = (date: Date): string => {
   return dayjs(date).utc().format('YYYY-MM-DD'); // https://day.js.org/docs/en/manipulate/utc
@@ -21,11 +21,7 @@ export function getFormattedUtcDatetimeNow(): string {
   return getFormattedUtcDatetime(new Date());
 }
 
-export const getFormattedUtcDatetimeForFilename = (date: Date): string => {
-  const formattedUtcDatetime = getFormattedUtcDatetime(date);
-  return formattedUtcDatetime.replaceAll(' ', '_').replaceAll(':', '');
-};
-
 export function formatDateFromNano(blockTimestamp: number): string {
-  return getFormattedUtcDatetime(new Date(blockTimestamp / 1_000_000));
+  const timestampInMilliseconds = Number(blockTimestamp / 1_000_000);
+  return getFormattedUtcDatetime(new Date(timestampInMilliseconds));
 }

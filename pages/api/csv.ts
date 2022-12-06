@@ -3,7 +3,7 @@
 import { type NextApiRequest, type NextApiResponse } from 'next';
 
 import query from '../../db/query';
-import { getFormattedUtcDatetimeNow } from '../../helpers/datetime';
+import { getFormattedUtcDatetimeNow } from '../../external/datetime';
 
 const STATUS_SUCCESS = 200;
 const STATUS_ERROR = 500;
