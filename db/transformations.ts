@@ -61,7 +61,7 @@ export function getFinalCsvRow(
     block_timestamp: indexerRow.block_timestamp,
     from_account: indexerRow.receipt_predecessor_account_id,
     block_height: indexerRow.block_height,
-    args_json: indexerRow.args.args_json ?? '',
+    args_json: JSON.stringify(indexerRow.args.args_json) ?? '',
     transaction_hash: indexerRow.transaction_hash,
     amount_transferred: nearAmount,
     // Fungible Token
@@ -202,7 +202,7 @@ export async function convertIncomingFungibleTokenTransactionsFromIndexerToCsvRo
     block_timestamp: row.block_timestamp,
     from_account: row.receipt_predecessor_account_id,
     block_height: row.block_height,
-    args_json: row.args?.args_json,
+    args_json: JSON.stringify(row.args?.args_json),
     transaction_hash: row.transaction_hash,
     // NEAR tokens
     amount_transferred: nearAmount,

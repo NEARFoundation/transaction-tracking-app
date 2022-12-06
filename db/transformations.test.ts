@@ -39,7 +39,7 @@ describe('transformations', () => {
       block_timestamp: indexerRow.block_timestamp,
       from_account: indexerRow.receipt_predecessor_account_id,
       block_height: indexerRow.block_height,
-      args_json: '{"amount":"10000000000","receiver_id":"dev3is.near"}',
+      args_json: '"{\\"amount\\":\\"10000000000\\",\\"receiver_id\\":\\"dev3is.near\\"}"',
       transaction_hash: indexerRow.transaction_hash,
       amount_transferred: nearAmount,
       // Fungible Token
