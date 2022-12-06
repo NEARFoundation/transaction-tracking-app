@@ -77,7 +77,7 @@ async function getOutgoingFungibleTokenDetailsFromIndexerRow(indexerRow: Indexer
 
 // eslint-disable-next-line max-lines-per-function
 export async function convertOutgoingTransactionsFromIndexerToCsvRow(accountId: AccountId, indexerRow: IndexerRow): Promise<CsvRow> {
-  const nearAmount = convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
+  const nearAmount = -1 * convertYoctoToNearAndConsiderSmallAmountsToBeZero(indexerRow);
 
   let ftAmountIn = '';
   let ftCurrencyIn = '';
