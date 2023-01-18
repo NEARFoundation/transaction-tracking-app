@@ -6,11 +6,32 @@ export type AccountId = string;
 const NEAR_NODE_URL = process.env.NEAR_NODE_URL ?? 'https://rpc.mainnet.near.org';
 const { provider, connection } = getNearApiConnection(NEAR_NODE_URL);
 
+let ftDetails = new Map<AccountId, { symbol: string; name: string; decimals: number }>();
+
 export async function getCurrencyByContractFromNear(fungibleTokenContractAccountId: AccountId): Promise<{ decimals: any; name: string; symbol: string }> {
-  // from https://github.com/NEARFoundation/tx-tracking-app/blob/1922c5f6059bb38583bc524a525d976731854284/backend/src/helpers/getCurrency.ts#L73
-  const ftMetadataResult = await new nearAPI.Account(connection, '').viewFunction(fungibleTokenContractAccountId, 'ft_metadata', {});
-  const { symbol, name, decimals } = ftMetadataResult;
-  return { symbol, name, decimals };
+  console.log(ftDetails);
+
+  // if not in the map, get the details from the contract and
+  // cache in the map
+  if (!ftDetails.has(fungibleTokenContractAccountId)) {
+    // from https://github.com/NEARFoundation/tx-tracking-app/blob/1922c5f6059bb38583bc524a525d976731854284/backend/src/helpers/getCurrency.ts#L73
+    const ftMetadataResult = await new nearAPI.Account(connection, '').viewFunction(fungibleTokenContractAccountId, 'ft_metadata', {});
+    const { symbol, name, decimals } = ftMetadataResult;
+
+    ftDetails.set(fungibleTokenContractAccountId, { symbol, name, decimals });
+    console.log(`ftDetails set for ${fungibleTokenContractAccountId}`, ftDetails.get(fungibleTokenContractAccountId));
+  }
+
+  const ftDetailsResult = ftDetails.get(fungibleTokenContractAccountId);
+  if (!ftDetailsResult) {
+    throw new Error(`ftDetails is undefined for ${fungibleTokenContractAccountId}`);
+  }
+
+  console.log(`ftDetails get for ${fungibleTokenContractAccountId}`, ftDetailsResult);
+
+  console.log(ftDetails);
+
+  return ftDetailsResult;
 }
 
 type query = {
