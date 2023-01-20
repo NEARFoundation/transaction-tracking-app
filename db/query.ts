@@ -98,10 +98,6 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
       var { symbol, decimals } = await getCurrencyByContractFromNear(msg.actions[0].token_in);
       out_currency = symbol;
       out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
-      var { symbol, decimals } = await getCurrencyByContractFromNear(msg.actions[0].token_out);
-      let raw_amount_in = msg.actions[0].min_amount_out;
-      in_currency = symbol;
-      in_amount = String(raw_amount_in / 10 ** decimals);
     } else {
       let raw_amount_out = args_json.amount;
       var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
