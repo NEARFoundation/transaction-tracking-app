@@ -64,12 +64,12 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
   let out_currency = '';
 
   if (row.args.method_name === 'ft_transfer') {
-    if (row.args?.args_json?.amount && row.receipt_receiver_account_id) {
+    let args_json = row.args?.args_json ? row.args.args_json : JSON.parse(atob(row.args.args_base64));
+    if (args_json.amount && row.receipt_receiver_account_id) {
       var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
-      let raw_amount = row.args?.args_json?.amount;
 
       out_currency = symbol;
-      out_amount = String(-1 * (raw_amount / 10 ** decimals));
+      out_amount = String(-1 * (args_json.amount / 10 ** decimals));
     }
   } else if (row.args.method_name === 'swap') {
     var { symbol, decimals } = await getCurrencyByContractFromNear(row.args.args_json.actions[0].token_in);
