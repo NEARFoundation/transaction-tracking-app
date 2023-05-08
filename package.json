@@ -1,41 +1,36 @@
 {
-  "name": "transaction-tracking-app",
-  "version": "0.1.0",
-  "scripts": {
-    "record_commit_hash_and_build_time": "now=$(date -u \"+%Y-%m-%d %H:%M:%S\") && current_branch=$(git branch --show-current) && last_commit=$(git rev-parse HEAD) && echo \"{\\\"branch\\\": \\\"$current_branch\\\", \\\"commit\\\": \\\"$last_commit\\\", \\\"build_time\\\": \\\"$now\\\"}\" > public/version.json",
-    "prebuild": "yarn record_commit_hash_and_build_time",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test": "jest"
-  },
-  "dependencies": {
-    "@types/node": "18.11.9",
-    "@types/react": "18.0.25",
-    "@types/react-dom": "18.0.9",
-    "csvjson-json2csv": "^1.0.3",
-    "dayjs": "^1.11.6",
-    "eslint": "8.28.0",
-    "eslint-config-next": "13.0.4",
-    "near-api-js": "^0.44.2",
-    "next": "13.0.4",
-    "pg": "^8.8.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "typescript": "4.9.3"
-  },
-  "devDependencies": {
-    "@nearfoundation/near-prettier-config": "^1.0.1",
-    "@types/jest": "^29.2.3",
-    "@types/pg": "^8.6.5",
-    "eslint-config-near": "^1.0.3",
-    "jest": "^29.3.1",
-    "prettier": "^2.7.1",
-    "ts-jest": "^29.0.3"
-  },
-  "prettier": "@nearfoundation/near-prettier-config",
-  "engines": {
-    "node": ">=18.0.0 <19.0.0"
-  }
+    "name": "tta-basic",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "@types/node": "18.11.9",
+        "@types/react": "18.0.25",
+        "@types/react-dom": "18.0.9",
+        "async-mutex": "^0.4.0",
+        "csvjson-json2csv": "^1.0.3",
+        "dayjs": "^1.11.6",
+        "eslint": "8.28.0",
+        "eslint-config-next": "13.0.4",
+        "near-api-js": "^0.44.2",
+        "next": "13.0.4",
+        "pg": "^8.8.0",
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
+        "typescript": "4.9.3"
+    },
+    "devDependencies": {
+        "@nearfoundation/near-prettier-config": "^1.0.1",
+        "@types/pg": "^8.6.5",
+        "prettier": "^2.7.1"
+    },
+    "prettier": "@nearfoundation/near-prettier-config",
+    "engines": {
+        "node": ">=16.0.0 <19.0.0"
+    }
 }
