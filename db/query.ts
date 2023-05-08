@@ -105,7 +105,16 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
       out_currency = symbol;
       out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
     }
+  } else if (row.args.method_name === 'withdraw' && row.receipt_receiver_account_id.endsWith('.factory.bridge.near')) {
+    let args_json = row.args?.args_json ? row.args.args_json : JSON.parse(atob(row.args.args_base64));
+    if (args_json.amount && row.receipt_receiver_account_id) {
+      var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+
+      out_currency = symbol;
+      out_amount = String(-1 * (args_json.amount / 10 ** decimals));
+    }
   }
+
   let b = null;
   if (row.receipt_receiver_account_id === AvailableTokens.USDC || row.receipt_receiver_account_id === AvailableTokens.USDT) {
     const ftBalances = await getBalances(accountId, row.block_height, [AvailableTokens.USDC, AvailableTokens.USDT]);
