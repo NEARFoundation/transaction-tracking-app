@@ -20,5 +20,6 @@ export default interface Row {
   args: string;
   onchain_usdc_balance: number;
   onchain_dai_balance: number;
+  onchain_usdt_balance: number;
   amount_staked: number;
 }

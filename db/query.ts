@@ -6,6 +6,7 @@ import { ALL_OUTGOING, ALL_INCOMING, FT_INCOMING } from './queries/all';
 import Row from './row';
 import { AccountId, FTBalance, getCurrencyByContractFromNear, getFTBalance } from '../helpers/currency';
 import { getLockup } from '../helpers/lockup';
+import { AvailableTokens } from './AvailableTokens';
 const CONNECTION_STRING = process.env.POSTGRESQL_CONNECTION_STRING;
 
 const SQL_STATEMENT_TIMEOUT = 3600 * 1_000; // 1 hour in milliseconds.
@@ -105,9 +106,13 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
       out_amount = String(-1 * (raw_amount_out / 10 ** decimals));
     }
   }
+  let b = null;
+  if (row.receipt_receiver_account_id === AvailableTokens.USDC || row.receipt_receiver_account_id === AvailableTokens.USDT) {
+    const ftBalances = await getBalances(accountId, row.block_height, [AvailableTokens.USDC, AvailableTokens.USDT]);
+    console.log('ftBalances', ftBalances);
+    b = ftBalances;
+  }
 
-  // Removed because it takes too much time.
-  // const ft_balances = await getBalances(accountId, row.block_height);
   let r = <Row>{
     date: formatDate(new Date(row.block_timestamp / 1000000)),
     account_id: accountId,
@@ -130,6 +135,15 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
     // onchain_usdc_balance: ft_balances.usdc.balance / 10 ** ft_balances.usdc.decimals,
     amount_staked: handle_staking(row, near_amount),
   };
+
+  if (b) {
+    if (b[AvailableTokens.USDC]) {
+      r.onchain_usdc_balance = b[AvailableTokens.USDC]?.balance / 10 ** b[AvailableTokens.USDC]?.decimals;
+    }
+    if (b[AvailableTokens.USDT]) {
+      r.onchain_usdt_balance = b[AvailableTokens.USDT]?.balance / 10 ** b[AvailableTokens.USDT]?.decimals;
+    }
+  }
 
   return r;
 }
@@ -154,8 +168,6 @@ async function handleIncoming(accountId: AccountId, row: any): Promise<Row> {
     }
   }
 
-  // Removed because it takes too much time.
-  // const ft_balances = await getBalances(accountId, row.block_height);
   let r = <Row>{
     date: formatDate(new Date(row.block_timestamp / 1000000)),
     account_id: accountId,
@@ -206,8 +218,13 @@ async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
     in_amount = String(raw_amount / 10 ** decimals);
   }
 
-  // Removed because it takes too much time.
-  // const ft_balances = await getBalances(accountId, row.block_height);
+  let b = null;
+  if (row.receipt_receiver_account_id === AvailableTokens.USDC || row.receipt_receiver_account_id === AvailableTokens.USDT) {
+    const ftBalances = await getBalances(accountId, row.block_height, [AvailableTokens.USDC, AvailableTokens.USDT]);
+    console.log('ftBalances', ftBalances);
+    b = ftBalances;
+  }
+
   let r = <Row>{
     date: formatDate(new Date(row.block_timestamp / 1000000)),
     account_id: accountId,
@@ -229,6 +246,15 @@ async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
     amount_staked: handle_staking(row, near_amount),
   };
 
+  if (b) {
+    if (b[AvailableTokens.USDC]) {
+      r.onchain_usdc_balance = b[AvailableTokens.USDC]?.balance / 10 ** b[AvailableTokens.USDC]?.decimals;
+    }
+    if (b[AvailableTokens.USDT]) {
+      r.onchain_usdt_balance = b[AvailableTokens.USDT]?.balance / 10 ** b[AvailableTokens.USDT]?.decimals;
+    }
+  }
+
   return r;
 }
 
@@ -238,23 +264,27 @@ function sortByBlockTimestamp(rows: Row[]): Row[] {
   });
 }
 
-const seen_balances = new Map();
+type BalanceKey = string;
+type BalanceValue = {
+  [token in AvailableTokens]?: FTBalance | null;
+};
 
-async function getBalances(accountId: AccountId, block_id: number): Promise<{ usdc: FTBalance; dai: FTBalance }> {
-  const key = JSON.stringify({ accId: accountId, b_id: block_id });
+const seenBalances = new Map<BalanceKey, BalanceValue>();
 
-  if (seen_balances.has(key)) {
-    return seen_balances.get(key);
+// Function is required. We will use it the future to get onchain balances
+export async function getBalances(accountId: AccountId, blockId: number, neededTokens: AvailableTokens[]): Promise<BalanceValue> {
+  const key: BalanceKey = JSON.stringify({ accId: accountId, b_id: blockId });
+
+  if (seenBalances.has(key)) {
+    return seenBalances.get(key) as BalanceValue;
   }
 
-  // USDC
-  const usdc = await getFTBalance('a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near', accountId, Number(block_id));
+  for (const token of neededTokens) {
+    const balance = await getFTBalance(token, accountId, Number(blockId));
+    seenBalances.set(key, { ...seenBalances.get(key), [token]: balance });
+  }
 
-  // DAI
-  const dai = await getFTBalance('6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near', accountId, Number(block_id));
-  seen_balances.set(key, { usdc, dai });
-
-  return { usdc, dai };
+  return seenBalances.get(key) as BalanceValue;
 }
 
 function getCommandsArgs(args: any): any {

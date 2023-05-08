@@ -1,5 +1,6 @@
 import * as nearAPI from 'near-api-js'; // https://docs.near.org/tools/near-api-js/quick-reference#import
 import { getNearApiConnection } from './nearConnection';
+import { RateLimiter } from './RateLimiter';
 
 export type AccountId = string;
 
@@ -47,7 +48,12 @@ export type FTBalance = {
   name: string;
   decimals: number;
 };
+
+const rateLimiter = new RateLimiter();
+
 export async function getFTBalance(ftContractAccountId: AccountId, accountId: AccountId, blockId: number): Promise<FTBalance> {
+  await rateLimiter.acquireToken();
+
   const provider = new nearAPI.providers.JsonRpcProvider({ url: 'https://archival-rpc.mainnet.near.org' });
 
   const rawResult: any = await provider.query({
