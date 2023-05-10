@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Commit from '../components/Commit';
 import styles from '../styles/Home.module.css';
 
 const ACCOUNT_ID = process.env.ACCOUNT_ID;
@@ -28,6 +29,9 @@ export default function Home() {
           <textarea name="accountIds" placeholder="account IDs separated by linebreaks" style={{ width: '100%', height: '20rem' }} defaultValue={ACCOUNT_ID} required></textarea>
           <button>Download report as CSV</button>
         </form>
+        <span style={{ marginTop: '5rem' }}>
+          Version: <Commit />
+        </span>
       </main>
     </div>
   );
