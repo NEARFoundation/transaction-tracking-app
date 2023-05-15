@@ -18,7 +18,6 @@ export async function getCurrencyByContractFromNear(fungibleTokenContractAccount
     const { symbol, name, decimals } = ftMetadataResult;
 
     ftDetails.set(fungibleTokenContractAccountId, { symbol, name, decimals });
-    console.log(`ftDetails set for ${fungibleTokenContractAccountId}`, ftDetails.get(fungibleTokenContractAccountId));
   }
 
   const ftDetailsResult = ftDetails.get(fungibleTokenContractAccountId);
