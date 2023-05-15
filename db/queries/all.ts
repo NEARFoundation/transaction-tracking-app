@@ -40,7 +40,8 @@ export const FT_INCOMING = `
     OR r.receiver_account_id = 'a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near'       -- USDC
     OR r.receiver_account_id = 'dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near'       -- USDT.e
     OR r.receiver_account_id = 'usn'                                                                -- USN
-    OR r.receiver_account_id = 'usdn')                                                              -- USN
+    OR r.receiver_account_id = 'usdn'
+    OR r.receiver_account_id = 'usdt.tether-token.near')                                             -- USDT
     AND ARA.action_kind = 'FUNCTION_CALL'
     AND (ARA.args -> 'args_json' ->> 'receiver_id' = ANY($1) OR ARA.args -> 'args_json' ->> 'account_id' = ANY($1))
     and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
