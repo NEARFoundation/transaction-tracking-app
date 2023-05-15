@@ -6,23 +6,35 @@ import { getFormattedUtcDatetimeNow } from '../../helpers/datetime';
 const STATUS_SUCCESS = 200;
 const STATUS_ERROR = 500;
 
-function getDefaultFilename(): string {
+function getFilename(accounts: Set<string>): string {
+  if (accounts.size === 1) {
+    return `${Array.from(accounts)[0]}_${getFormattedUtcDatetimeNow()}.csv`;
+  } else if (accounts.size > 1) {
+    const firstAccount = Array.from(accounts)[0];
+    return `${firstAccount}+${accounts.size - 1}_more_${getFormattedUtcDatetimeNow()}.csv`;
+  }
   return `download_${getFormattedUtcDatetimeNow()}.csv`;
 }
 
 function getCleanedAccountIds(accountIds: string): Set<string> {
-  return new Set(accountIds.replaceAll('\r', '').split('\n'));
+  return new Set(
+    accountIds
+      .replaceAll('\r', '')
+      .split('\n')
+      .filter((id) => id.trim() !== ''),
+  );
 }
 
 export default async function handler(request: NextApiRequest, res: NextApiResponse<string>) {
   const { startDate, endDate, accountIds } = request.body;
 
   console.log({ startDate, endDate, accountIds });
-  const rowsCsv = await query_all(startDate as string, endDate as string, getCleanedAccountIds(accountIds as string));
+  const accounts = getCleanedAccountIds(accountIds as string);
+  const rowsCsv = await query_all(startDate as string, endDate as string, accounts);
 
   // https://medium.com/@aitchkhan/downloading-csv-files-from-express-server-7a3beb3ae52c
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="${getDefaultFilename()}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${getFilename(accounts)}"`);
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Pragma', 'no-cache');
 
