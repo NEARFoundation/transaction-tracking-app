@@ -7,6 +7,5 @@ export function getNearApiConnection(nodeUrl: string, keyStore?: KeyStore) {
   const provider = new nearAPI.providers.JsonRpcProvider(connectionInfo);
   const signer = new nearAPI.InMemorySigner(keyStore ?? new InMemoryKeyStore());
   const connection = new nearAPI.Connection(nodeUrl, provider, signer);
-  // console.log('getNearApiConnection', connection);
   return { provider, connection };
 }

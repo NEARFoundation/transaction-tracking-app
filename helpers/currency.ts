@@ -10,8 +10,6 @@ const { provider, connection } = getNearApiConnection(NEAR_NODE_URL);
 let ftDetails = new Map<AccountId, { symbol: string; name: string; decimals: number }>();
 
 export async function getCurrencyByContractFromNear(fungibleTokenContractAccountId: AccountId): Promise<{ decimals: any; name: string; symbol: string }> {
-  console.log(ftDetails);
-
   // if not in the map, get the details from the contract and
   // cache in the map
   if (!ftDetails.has(fungibleTokenContractAccountId)) {
@@ -27,10 +25,6 @@ export async function getCurrencyByContractFromNear(fungibleTokenContractAccount
   if (!ftDetailsResult) {
     throw new Error(`ftDetails is undefined for ${fungibleTokenContractAccountId}`);
   }
-
-  console.log(`ftDetails get for ${fungibleTokenContractAccountId}`, ftDetailsResult);
-
-  console.log(ftDetails);
 
   return ftDetailsResult;
 }

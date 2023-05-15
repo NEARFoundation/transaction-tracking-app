@@ -4,6 +4,5 @@ import Row from './row';
 
 export default function jsonToCsv(object: Row[]): string {
   const csv = json2csv(object, { output_csvjson_variant: false, flatten: false, separator: ',' });
-  // console.log(csv);
   return csv;
 }

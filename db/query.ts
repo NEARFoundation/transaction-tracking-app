@@ -25,6 +25,10 @@ export default async function query_all(startDate: string, endDate: string, acco
     const ft_incoming_txs_promise = pool.query(FT_INCOMING, [[accountId, lockupAccountId], startDate, endDate]);
     const [all_outgoing_txs, all_incoming_txs, ft_incoming_txs] = await Promise.all([all_outgoing_txs_promise, all_incoming_txs_promise, ft_incoming_txs_promise]);
 
+    console.log(
+      `account: ${accountId}, all_outgoing_txs: ${all_outgoing_txs.rowCount}, all_incoming_txs: ${all_incoming_txs.rowCount}, ft_incoming_txs: ${ft_incoming_txs.rowCount}`,
+    );
+
     // TODO(pierre): consider using async to parallelize this
     for (const row of all_outgoing_txs.rows) {
       rows_promises.push(handleOutgoing(accountId, row));
@@ -41,7 +45,8 @@ export default async function query_all(startDate: string, endDate: string, acco
 
   let rows = await Promise.all(rows_promises);
 
-  const sortedRows = sortByBlockTimestamp(rows);
+  const r = removeZeroRows(rows);
+  const sortedRows = sortByBlockTimestamp(r);
   const csv = jsonToCsv(sortedRows);
   return csv;
 }
@@ -118,7 +123,6 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
   let b = null;
   if (row.receipt_receiver_account_id === AvailableTokens.USDC || row.receipt_receiver_account_id === AvailableTokens.USDT) {
     const ftBalances = await getBalances(accountId, row.block_height, [AvailableTokens.USDC, AvailableTokens.USDT]);
-    console.log('ftBalances', ftBalances);
     b = ftBalances;
   }
 
@@ -230,7 +234,6 @@ async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
   let b = null;
   if (row.receipt_receiver_account_id === AvailableTokens.USDC || row.receipt_receiver_account_id === AvailableTokens.USDT) {
     const ftBalances = await getBalances(accountId, row.block_height, [AvailableTokens.USDC, AvailableTokens.USDT]);
-    console.log('ftBalances', ftBalances);
     b = ftBalances;
   }
 
@@ -270,6 +273,16 @@ async function handleFtIncoming(accountId: AccountId, row: any): Promise<Row> {
 function sortByBlockTimestamp(rows: Row[]): Row[] {
   return rows.sort(function (a, b) {
     return a.account_id.localeCompare(b.account_id) || a.block_timestamp - b.block_timestamp;
+  });
+}
+
+function removeZeroRows(rows: Row[]): Row[] {
+  return rows.filter((row) => {
+    const ftAmountIn = parseFloat(row.ft_amount_in);
+    const ftAmountOut = parseFloat(row.ft_amount_out);
+    const amountTransferred = row.amount_transferred;
+
+    return (!isNaN(ftAmountIn) && ftAmountIn !== 0) || (!isNaN(ftAmountOut) && ftAmountOut !== 0) || amountTransferred !== 0;
   });
 }
 
