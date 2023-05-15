@@ -52,10 +52,12 @@ export default async function query_all(startDate: string, endDate: string, acco
 }
 
 function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthIndex = date.getMonth();
+  const month = months[monthIndex];
   const day = date.getDate();
-  return `${day}/${month}/${year}`;
+  const year = date.getFullYear();
+  return `${month} ${day}, ${year}`;
 }
 
 async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
