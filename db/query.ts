@@ -120,6 +120,13 @@ async function handleOutgoing(accountId: AccountId, row: any): Promise<Row> {
       out_currency = symbol;
       out_amount = String(-1 * (args_json.amount / 10 ** decimals));
     }
+  } else if (row.args.method_name === 'near_deposit') {
+    if (row.receipt_receiver_account_id) {
+      var { symbol, decimals } = await getCurrencyByContractFromNear(row.receipt_receiver_account_id);
+
+      in_currency = symbol;
+      in_amount = String(-1 * near_amount);
+    }
   }
 
   let b = null;
