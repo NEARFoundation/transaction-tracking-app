@@ -9,7 +9,14 @@ FROM TRANSACTIONS T
 WHERE eo.status IN ('SUCCESS_RECEIPT_ID', 'SUCCESS_VALUE')
   and receipt_predecessor_account_id = ANY($1)
   and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
-  and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3;`;
+  and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3
+  AND NOT EXISTS (
+    SELECT 1
+    FROM RECEIPTS R2
+    JOIN EXECUTION_OUTCOMES EO2 ON EO2.RECEIPT_ID = R2.RECEIPT_ID
+    WHERE (T.CONVERTED_INTO_RECEIPT_ID = R2.RECEIPT_ID OR T.TRANSACTION_HASH = R2.ORIGINATED_FROM_TRANSACTION_HASH)
+    AND EO2.STATUS = 'FAILURE'
+);`;
 
 export const ALL_INCOMING = `
 SELECT *
@@ -22,7 +29,14 @@ FROM TRANSACTIONS T
 WHERE eo.status IN ('SUCCESS_RECEIPT_ID', 'SUCCESS_VALUE')
   and receipt_receiver_account_id = ANY($1)
   and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
-  and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3;`;
+  and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3
+  AND NOT EXISTS (
+    SELECT 1
+    FROM RECEIPTS R2
+    JOIN EXECUTION_OUTCOMES EO2 ON EO2.RECEIPT_ID = R2.RECEIPT_ID
+    WHERE (T.CONVERTED_INTO_RECEIPT_ID = R2.RECEIPT_ID OR T.TRANSACTION_HASH = R2.ORIGINATED_FROM_TRANSACTION_HASH)
+    AND EO2.STATUS = 'FAILURE'
+);`;
 
 export const FT_INCOMING = `
   SELECT *
@@ -42,4 +56,11 @@ export const FT_INCOMING = `
     AND ARA.action_kind = 'FUNCTION_CALL'
     AND (ARA.args -> 'args_json' ->> 'receiver_id' = ANY($1) OR ARA.args -> 'args_json' ->> 'account_id' = ANY($1))
     and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') >= $2
-    and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3;`;
+    and to_char(to_timestamp(b.block_timestamp / 1000000000), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') < $3
+    AND NOT EXISTS (
+      SELECT 1
+      FROM RECEIPTS R2
+      JOIN EXECUTION_OUTCOMES EO2 ON EO2.RECEIPT_ID = R2.RECEIPT_ID
+      WHERE (T.CONVERTED_INTO_RECEIPT_ID = R2.RECEIPT_ID OR T.TRANSACTION_HASH = R2.ORIGINATED_FROM_TRANSACTION_HASH)
+      AND EO2.STATUS = 'FAILURE'
+  );`;
